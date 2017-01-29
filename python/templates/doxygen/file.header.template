@@ -1,0 +1,4 @@
+@file   {{ filename }}
+@brief  {{ brief }}
+{% for author in authors %}
+@author {{ author.name }} <{{ author.email }}> {%- endfor %}

@@ -1,0 +1,16 @@
+{% filter cpp_blockcomment %}
+{% include "license/gpl3.header.template" %}
+
+{% include "doxygen/file.header.template" %}
+{% endfilter %}
+
+#ifndef {{ package | cpp_defprotect }}
+#define {{ package | cpp_defprotect }}
+{% for include in includes %}
+#include {{ include }}
+{%- endfor %}
+
+{%- for class in classes %}
+{% include "cpp/class.def.template" %}
+{%endfor %}
+#endif /* {{ package | cpp_defprotect }} */

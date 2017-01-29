@@ -1,0 +1,40 @@
+/*** {{ class.name }} class implementation ***/
+
+/* Property access functions */
+{%- block property_read %}
+{% for property in class.properties %}
+{{ property.type | cpp_type(typemap) }}{% if "byref" in property.tags %}*{% endif %} {{class.name}}::{{ property.name }}() const
+{
+{% filter cpp_section("user_code", property.name, class.name, "custom_read" in property.tags) %}
+	return m_{{ property.name }};
+{%- endfilter %}
+}
+{%- if "readonly" not in property.tags %}
+
+void {{class.name}}::set{{ property.name | capitalize }}({{ property.type | cpp_type }} _{{ property.name }})
+{
+{%- filter cpp_section("user_code", property.name, class.name, "custom_write" in property.tags) %}
+	m_{{ property.name }} = _{{ property.name }};
+{%- endfilter %}
+}
+{%- endif %}
+{% endfor %}
+{%- endblock %}
+
+{%- block methods %}
+{%- for method in class.methods %}
+{{ method.return | cpp_type(typemap) }} {{class.name}}::{{ method.name  }}({{method.arguments | cpp_arguments(typemap)}})
+{
+{% filter cpp_section("user_code", method.name, class.name) %}
+	{%- if method.return %}
+	{{ method.return | cpp_type(typemap) }} result;
+	{%- endif %}
+	{%- if method.return %}
+	return result;
+	{%- endif %}
+{%- endfilter %}
+}
+{% endfor %}
+{%- endblock %}
+{% block other %}
+{%- endblock %}

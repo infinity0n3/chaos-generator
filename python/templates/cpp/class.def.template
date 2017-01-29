@@ -1,0 +1,64 @@
+{#
+	
+	class
+		.name:string
+		.brief:string
+		.tags:[]
+		.properties:propertie
+		.methods:method
+		
+	propertie
+		.name
+		.type
+		.tags
+	
+	method
+		.name
+	
+#}
+
+{%- for fwd in class.forwards %}
+class {{ fwd }};
+{%- endfor %}
+
+class {{ class.name }}
+{%- if class.parents %}
+	: {{ class.parents | cpp_list }}
+{%- endif %}
+{
+private:
+	{%- block private %}
+	/* Properties */
+	{% for property in class.properties %}
+	{{ property.type | cpp_type(typemap) }} m_{{ property.name }}; // {{ property.brief }}
+	{%- endfor %}
+	{% block private_extra %}
+	{%- endblock %}
+	{%- endblock %}
+public:
+	{%- block public %}
+	/* Property access functions */
+	{% for property in class.properties %}
+	// m_{{ property.name }} read function
+	{{ property.type | cpp_type(typemap) }}{% if "byref" in property.tags %}*{% endif %} {{ property.name }}() const;
+	{%- if "readonly" not in property.tags %}
+	// m_{{ property.name }} write function
+	void set{{ property.name | capitalize }}({{ property.type | cpp_type }} _{{ property.name }});
+	{%- endif %}
+	{% endfor %}
+	/* Other Methods */
+	
+	{%- for method in class.methods %}
+	{{ method.return | cpp_type(typemap) }} {{ method.name  }}({{ method.arguments | cpp_arguments(typemap,true) }});
+	{%- endfor %}
+	{% block public_extra %}
+	{%- endblock %}
+	{%- endblock %}
+protected:
+	{%- block protected %}
+	{%- endblock %}
+	{%- block protected_extra %}
+	{%- endblock %}
+{% block section_extra %}
+{%- endblock %}
+};

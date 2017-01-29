@@ -1,0 +1,17 @@
+/* Include */
+{%- for include in includes %}
+#include {{ include }}
+{%- endfor %}
+
+{# Include section #}
+{%- filter cpp_section("manual_includes_n_defines") %}
+/*** Replace this block with your manually written include and define code ***/
+{%- endfilter %}
+
+{# Auotgenerated class implementations #}
+{%- for class in classes %}
+{%- include "cpp/class.impl.template" %}
+{%- endfor %}
+{# Manual user code section #}
+{%- filter cpp_section("manual_code") %}
+{%- endfilter %}
