@@ -13,7 +13,7 @@
 
 void {{class.name}}::set{{ property.name | capitalize }}({{ property.type | cpp_type }} _{{ property.name }})
 {
-{%- filter cpp_section("user_code", property.name, class.name, "custom_write" in property.tags) %}
+{% filter cpp_section("user_code", property.name, class.name, "custom_write" in property.tags) %}
 	m_{{ property.name }} = _{{ property.name }};
 {%- endfilter %}
 }
@@ -23,6 +23,10 @@ void {{class.name}}::set{{ property.name | capitalize }}({{ property.type | cpp_
 
 {%- block methods %}
 {%- for method in class.methods %}
+{%- if "abstract" not in method.tags %}
+{% filter cpp_blockcomment %}
+{%- include "doxygen/method.template" %}
+{%- endfilter %}
 {{ method.return | cpp_type(typemap) }} {{class.name}}::{{ method.name  }}({{method.arguments | cpp_arguments(typemap)}})
 {
 {% filter cpp_section("user_code", method.name, class.name) %}
@@ -34,6 +38,7 @@ void {{class.name}}::set{{ property.name | capitalize }}({{ property.type | cpp_
 	{%- endif %}
 {%- endfilter %}
 }
+{%- endif %}{# if "abstract" ... #}
 {% endfor %}
 {%- endblock %}
 {% block other %}

@@ -1,0 +1,4 @@
+Function description
+{%- for argument in method.arguments %}
+@param {{ argument.name }}
+{%- endfor %}

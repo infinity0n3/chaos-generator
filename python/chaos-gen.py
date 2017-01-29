@@ -45,42 +45,24 @@ with open("code_storm.models") as f:
 
 cpp_typemap.update(qt5_typemap)
 
-gus = cpp_generator_planning(models, packages, cpp_typemap, cpp_builtin_types, qt5_types)
-#~ tmp = cpp_generator_planning(models, packages, cpp_typemap)
-
-for gu in gus:
-	create_from_template(gu['template'], gu['filename'], gu['env'], overwrite=True)
-
-#print tmp['Block']
-#~ for m in tmp:
-	#~ print m #, '=>', tmp[m]['def']['filename'], tmp[m]['impl']['filename']
-
-#~ env = {
-	#~ "project" : "CodeStorm",
-	#~ "year" : "2017",
-	#~ "organization" : "Colibri-Embedded",
-	#~ "authors" : [
-		#~ {"name":"Daniel Kesler", "email":"kesler.daniel@gmail.com"}
-	#~ ],
-	#~ "classes" : [ models[0], models[1] ],
-	#~ "includes" : ['"object.h"', '"blockio.h"'],
-	#~ "typemap": qt5_typemap,
-#~ }
-
-#~ create_from_template('cpp/source.h.template', 'test.h', env, overwrite=True)
-#~ create_from_template('c++/source.cpp.template', 'test.cpp', env, overwrite=True)
-
 project = {
-	"name": "Code-Storm",
+	"project": "ChaosGenerator",
+	"organization" : "Colibri-Embedded",
 	"year": "2017",
 	"authors" : [
 		{"name":"Daniel Kesler", "email":"kesler.daniel@gmail.com"}
 	],
 	"language" : "cpp",
-	"dialect"  : "c++11",
 	"framework" : "qt5"
 }
 
+gus, errors = cpp_generator_planning(models, packages, cpp_typemap, cpp_builtin_types, qt5_types)
+#~ tmp = cpp_generator_planning(models, packages, cpp_typemap)
+
+for gu in gus:
+	env = gu['env'].copy()
+	env.update(project)
+	create_from_template(gu['template'], gu['filename'], env, overwrite=True)
 
 content = {
 	"project" : project,

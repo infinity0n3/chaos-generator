@@ -9,7 +9,6 @@
 {% for include in includes %}
 #include {{ include }}
 {%- endfor %}
-
 {%- for class in classes %}
 {% include "cpp/class.def.template" %}
 {%endfor %}

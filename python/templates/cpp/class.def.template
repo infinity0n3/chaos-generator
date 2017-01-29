@@ -19,8 +19,7 @@
 
 {%- for fwd in class.forwards %}
 class {{ fwd }};
-{%- endfor %}
-
+{% endfor %}
 class {{ class.name }}
 {%- if class.parents %}
 	: {{ class.parents | cpp_list }}
@@ -45,11 +44,12 @@ public:
 	// m_{{ property.name }} write function
 	void set{{ property.name | capitalize }}({{ property.type | cpp_type }} _{{ property.name }});
 	{%- endif %}
-	{% endfor %}
+	{%- endfor %}
+	
 	/* Other Methods */
 	
 	{%- for method in class.methods %}
-	{{ method.return | cpp_type(typemap) }} {{ method.name  }}({{ method.arguments | cpp_arguments(typemap,true) }});
+	{% if "abstract" in method.tags or "virtual" in method.tags %}virtual {% endif %}{{ method.return | cpp_type(typemap) }} {{ method.name  }}({{ method.arguments | cpp_arguments(typemap,true) }}){% if "abstract" in method.tags %} =0{% endif %};
 	{%- endfor %}
 	{% block public_extra %}
 	{%- endblock %}

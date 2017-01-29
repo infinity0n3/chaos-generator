@@ -1,4 +1,5 @@
 import re
+from copy import deepcopy
 from extensions.language.cpp import cpp_type_parser, cpp_type_filter, cpp_class_filename
 #~ from analyzers.common import tarjan
 
@@ -70,7 +71,9 @@ def cpp_position(a, b, group):
 		return "before"
 	else:
 		return "same"
-		
+
+
+
 def cpp_generator_planning(models, packages, typemap, builtin_types = {}, library_types = {}, custom_types = {}, cpp_ext='.cpp', hpp_ext='.h' ):
 	
 	model_uses = {}
@@ -80,44 +83,65 @@ def cpp_generator_planning(models, packages, typemap, builtin_types = {}, librar
 	
 	errors = {}
 	
+	for model in models:
+		name = model['name']
+		model_env[name] = model.copy()
+		
 	# Gather model type usage
 	for model in models:
 		name = model['name']
 		model_types = []
 		model_inherit = []
 		
-		model_env[name] = model.copy()
+		#~ model_env[name] = model.copy()
 		
-		if 'parents' in model:
-			for parent in model['parents']:
-				if parent not in model_types:
-					model_types.append( parent )
-				if parent not in model_inherit:
-					model_inherit.append(parent)
+		for parent in model['parents'] if 'parents' in model else []:
+			if parent not in model_types:
+				model_types.append( parent )
+			if parent not in model_inherit:
+				model_inherit.append(parent)
 					
-		if 'interfaces' in model:
-			for interface in model['interfaces']:
-				if interface not in model_types:
-					model_types.append( interface )
-				if interface not in model_inherit:
-					model_inherit.append(interface)
-					
-		if 'properties' in model:
-			for propertie in model['properties']:
-				types = cpp_extract_types(propertie['type'], typemap)
+		for interface in model['interfaces'] if 'interfaces' in model else []:
+			if interface not in model_types:
+				model_types.append( interface )
+			if interface not in model_inherit:
+				model_inherit.append(interface)
 				
-				for t in types:
-					if t not in model_types:
-						model_types.append(t)
+			# Add interfaces to parents list as in c++ they are the same
+			if 'parents' not in model_env[name]:
+				model_env[name]['parents'] = []
+				
+			if interface not in model_env[name]['parents']:
+				model_env[name]['parents'].append(interface)
+				
+				# Add interface functions to child model
+				interface = model_env[interface]
+				for method in interface['methods'] if 'methods' in interface else []:
+					if 'tags' in method:
+						if 'abstract' in method['tags']:
+							method_impl = deepcopy(method)
+							idx = method_impl['tags'].index('abstract')
+							method_impl['tags'].append("virtual")
+							method_impl['tags'].pop(idx)
+							if 'methods' in model_env[name]:
+								model_env[name]['methods'].append(method_impl)
+							else:
+								model_env[name]['methods'] = [method_impl]
+								print model_env[name]['methods']
+					
+		for propertie in model['properties'] if 'properties' in model else []:
+			types = cpp_extract_types(propertie['type'], typemap)
+			for t in types:
+				if t not in model_types:
+					model_types.append(t)
 							
 		if 'methods' in model:
 			for method in model['methods']:
-				if 'arguments' in method:
-					for argument in method['arguments']:
-						types = cpp_extract_types(argument['type'], typemap)
-						for t in types:
-							if t not in model_types:
-								model_types.append(t)
+				for argument in method['arguments'] if 'arguments' in method else []:
+					types = cpp_extract_types(argument['type'], typemap)
+					for t in types:
+						if t not in model_types:
+							model_types.append(t)
 							
 		model_uses[name] = model_types
 		model_inherits[name] = model_inherit
