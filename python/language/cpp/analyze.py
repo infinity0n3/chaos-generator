@@ -1,11 +1,13 @@
 import re
 from copy import deepcopy
-from extensions.language.cpp import cpp_type_parser, cpp_type_filter, cpp_class_filename
-#~ from analyzers.common import tarjan
+from language.cpp.filter import cpp_type_parser, cpp_type_filter, cpp_class_filename
 
 from tarjan import tarjan
 
 def cpp_extract_types(value, typemap):
+	"""
+	Extract type and container from CONTAINER<TYPE> notation
+	"""
 	result = []
 	m = cpp_type_parser.search(value)
 	
@@ -17,38 +19,10 @@ def cpp_extract_types(value, typemap):
 		
 	return result
 
-def usedby(name, model_map, direct=True, tested=[]):
-	result = set()
-	
-	if name in tested:
-		return set()
-	
-	for m in model_map:
-		tested.append(name)
-		if name in model_map[m]:
-			result.add(m if direct else '*'+m)
-			t = tested[:]
-			result.update( usedby(m, model_map, False, t) )
-			
-	return result
-
-def cpp_inheritance_scc(models):
-	model_inherits = {}
-	for model in models:
-		name = model['name']
-		model_types = []
-		
-		if 'parents' in model:
-			for parent in model['parents']:
-				if parent not in model_types:
-					model_types.append( parent )
-					print name, "->", parent
-					
-
-	
-		model_uses[name] = model_types
-
 def cpp_position(a, b, group):
+	"""
+	Return relative position to each other of element `a` and `b` in `group`
+	"""
 	if a not in group:
 		return None
 		
@@ -72,9 +46,7 @@ def cpp_position(a, b, group):
 	else:
 		return "same"
 
-
-
-def cpp_generator_planning(models, packages, typemap, builtin_types = {}, library_types = {}, custom_types = {}, cpp_ext='.cpp', hpp_ext='.h' ):
+def planner(models, packages, typemap, builtin_types = {}, library_types = {}, custom_types = {}, cpp_ext='.cpp', hpp_ext='.h' ):
 	
 	model_uses = {}
 	model_inherits = {}
@@ -88,12 +60,24 @@ def cpp_generator_planning(models, packages, typemap, builtin_types = {}, librar
 		model_env[name] = model.copy()
 		
 	# Gather model type usage
-	for model in models:
-		name = model['name']
+	for name in model_env:
+		model = model_env[name]
 		model_types = []
 		model_inherit = []
 		
-		#~ model_env[name] = model.copy()
+		is_abstract = False
+		default_contructor = True
+		default_destructor = True
+			
+		if 'methods' in model:
+			for method in model['methods']:
+				if method['name'] == name:
+					default_contructor = False
+				if 'return' not in method:
+					method['return'] = 'void'
+				if 'tags' in method:
+					if 'abstract' in method['tags']:
+						is_abstract = True
 		
 		for parent in model['parents'] if 'parents' in model else []:
 			if parent not in model_types:
@@ -108,10 +92,10 @@ def cpp_generator_planning(models, packages, typemap, builtin_types = {}, librar
 				model_inherit.append(interface)
 				
 			# Add interfaces to parents list as in c++ they are the same
-			if 'parents' not in model_env[name]:
-				model_env[name]['parents'] = []
+			if 'parents' not in model:
+				model['parents'] = []
 				
-			if interface not in model_env[name]['parents']:
+			if interface not in model['parents']:
 				model_env[name]['parents'].append(interface)
 				
 				# Add interface functions to child model
@@ -124,17 +108,39 @@ def cpp_generator_planning(models, packages, typemap, builtin_types = {}, librar
 							method_impl['tags'].append("virtual")
 							method_impl['tags'].pop(idx)
 							if 'methods' in model_env[name]:
-								model_env[name]['methods'].append(method_impl)
+								model['methods'].append(method_impl)
 							else:
-								model_env[name]['methods'] = [method_impl]
-								print model_env[name]['methods']
+								model['methods'] = [method_impl]
 					
 		for propertie in model['properties'] if 'properties' in model else []:
 			types = cpp_extract_types(propertie['type'], typemap)
 			for t in types:
 				if t not in model_types:
 					model_types.append(t)
-							
+		
+		if default_destructor:
+			destructor = {
+				'name' : '~' + name,
+				'tags' : ['destructor']
+			}
+			if is_abstract:
+				destructor['tags'].append('virtual')
+				
+			if 'methods' not in model:
+				model['methods'] = [destructor]
+			else:
+				model['methods'].insert(0, destructor)
+		
+		if default_contructor:
+			constructor = {
+				'name' : name,
+				'tags' : ['constructor']
+			}
+			if 'methods' not in model:
+				model['methods'] = [constructor]
+			else:
+				model['methods'].insert(0, constructor)
+		
 		if 'methods' in model:
 			for method in model['methods']:
 				for argument in method['arguments'] if 'arguments' in method else []:
@@ -153,28 +159,23 @@ def cpp_generator_planning(models, packages, typemap, builtin_types = {}, librar
 				has_package = True
 				break
 		if not has_package:
-			model_package[name] = cpp_class_filename(name)
+			model_package[name] = model['package'] if 'package' in model else cpp_class_filename(name)
 	
-	#~ print "== tarjan =="
-	#~ print model_uses
-	#~ print model_inherits
-	#~ print "== result =="
 	scc = tarjan(model_uses)
-
+	
 	## Sort by inheritance
 	scc_sorted = []
 	for group in scc:
 		fixed = group[:]
 		for m in group:
-			if m in model_inherits:
-				for i in model_inherits[m]:
-					if i in group:
-						r = cpp_position(m ,i, fixed)
-						if r == "after":
-							idx1 = fixed.index(i)
-							tmp = fixed.pop(idx1)
-							idx0 = fixed.index(m)
-							fixed.insert(idx0, tmp)
+			for i in model_inherits[m] if m in model_inherits else []:
+				if i in group:
+					r = cpp_position(m ,i, fixed)
+					if r == "after":
+						idx1 = fixed.index(i)
+						tmp = fixed.pop(idx1)
+						idx0 = fixed.index(m)
+						fixed.insert(idx0, tmp)
 						
 		scc_sorted.append(fixed)
 		
@@ -208,7 +209,8 @@ def cpp_generator_planning(models, packages, typemap, builtin_types = {}, librar
 						include = '"'+cpp_class_filename(dep)+hpp_ext+'"'
 						
 						if r == None:
-							inc_hpp.append(include) 
+							if not same_package:
+								inc_hpp.append(include)
 						elif r == "before":
 							if not same_package:
 								inc_hpp.append(include) 

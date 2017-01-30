@@ -1,3 +1,5 @@
+from language.cpp import type_parser as cpp_type_parser, \
+						 typemap as cpp_typemap
 import re
 from jinja2 import contextfilter
 
@@ -56,42 +58,6 @@ def cpp_block_filter(block, terminate=False):
 		lines.append(end_block)
 	
 	return "\n".join(lines)
-
-cpp_type_parser = re.compile("((?P<container>\\w+)<)?(?P<type>\\w+)(?P<ptr>\*)?(?P<ref>\&)?(\[(?P<width>\d+)\])?>?(?P<container_ptr>\*)?(?P<container_ref>\&)?(\[(?P<container_width>\d+)\])?")
-cpp_typemap = {
-	'vector' : 'std::vector',
-	'stack' : 'std::stack',
-	'queue' : 'std::queue',
-	'list'   : 'std::list',
-	'string' : 'std::string',
-	'wstring' : 'std::wstring'
-};
-
-cpp_builtin_types = {
-	'unsigned': [],
-	'int': [],
-	'char': [],
-	'short': [],
-	'long': [],
-	'float': [],
-	'uint8_t': 		['<cstdint>'],
-	'uint16_t':		['<cstdint>'], 
-	'uint32_t':		['<cstdint>'], 
-	'uint64_t':		['<cstdint>'], 
-	'int8_t':		['<cstdint>'], 
-	'int16_t':		['<cstdint>'], 
-	'int32_t':		['<cstdint>'], 
-	'int64_t':		['<cstdint>'],
-	'std::array': 	['<array>'],
-	'std::vector': 	['<vector>'],
-	'std::list': 	['<list>'],
-	'std::set': 	['<set>'],
-	'std::queue': 	['<queue>'],
-	'std::stack': 	['<stack>'],
-	'std::string': 	['<string>'],
-	'std::wstring': ['<string>'],
-	'std::forward_list': ['<forward_list>'],
-	}
 
 def cpp_type_filter(typename, typemap=None):
 	

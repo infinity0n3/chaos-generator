@@ -1,0 +1,123 @@
+{
+	"commands": [
+		{
+			"name" : "AddBlock",
+			"package" : "document_commands",
+			"arguments" : [],
+			"properties": []
+		},
+		{
+			"name" : "RemoveBlock",
+			"package" : "document_commands",
+			"arguments": [],
+			"properties": []
+		},
+		{
+			"name" : "RemoveBlock",
+			"package" : "document_commands",
+			"arguments" : [],
+			"properties": []
+		}
+	],
+	"comment" : ["Block", "BlockIO", "BlockInput", "BlockOutput"],
+	"packages" : {
+		"document_commands": [],
+		"block_package": ["Block", "BlockIO", "BlockInput", "BlockOutput"]
+	},
+	"models": [
+		{
+			"name": "JSONSerializable",
+			"package": "json_serializable",
+			"properties": [{
+				"name" : "ref",
+				"type" : "unsigned",
+				"default": "0",
+				"tags" : "dont_store"
+			}],
+			"methods":[{
+				"name": "toJSONObject",
+				"abstract" : true,
+				"return" : "jsonobject",
+				"template": "store_to_json_object",
+				"arguments" : [],
+				"tags": ["abstract"]
+			}, {
+				"name": "fromJSONObject",
+				"abstract": true,
+				"return": "bool",
+				"template": "load_from_json_object",
+				"arguments":[{
+					"name": "json",
+					"type": "jsonobject&"
+				}],
+				"tags": ["abstract"]
+			}]
+		},
+		{
+			"name": "Block",
+			"interfaces": ["JSONSerializable"],
+			"properties": [{
+				"name": "name",
+				"type": "string",
+				"brief": "The name of the Block",
+				"tags" : ["custom_write"]
+			}, {
+				"name": "inputs",
+				"brief": "Inputs of the Block",
+				"type": "vector<BlockIO*>",
+				"tags": ["readonly"]
+			}, {
+				"name": "outputs",
+				"brief": "Outputs of the Block",
+				"type": "vector<BlockIO*>",
+				"tags": ["readonly"]
+			}],
+			"methods": [{
+				"name" : "addInput",
+				"arguments" : [{
+					"name": "name",
+					"type": "string"
+				}, {
+					"name": "type",
+					"type": "string"
+				}],
+				"return" : "BlockIO*"
+			}, {
+				"name" : "addOutput",
+				"arguments" : [{
+					"name": "name",
+					"type": "string"
+				}, {
+					"name": "type",
+					"type": "string"
+				}],
+				"return" : "BlockIO*"
+			}]
+		},
+		{
+			"name": "BlockIO",
+			"interfaces" : ["JSONSerializable"],
+			"properties": [{
+				"name": "name",
+				"type": "string",
+				"default": ""
+			}, {
+				"name": "type",
+				"type": "string",
+				"default": ""
+			}, {
+				"name": "parent",
+				"type": "Block*",
+				"tags": ["dont_store", "readonly"]
+			}]
+		},
+		{
+			"name": "BlockInput",
+			"parents": ["BlockIO"]
+		},
+		{
+			"name": "BlockOutput",
+			"parents": ["BlockIO"]
+		}
+	]
+}

@@ -36,6 +36,11 @@ private:
 	{%- endblock %}
 public:
 	{%- block public %}
+	{%- for method in class.methods %}
+	{%- if "constructor" in method.tags or "destructor" in method.tags %}
+	{% if "virtual" in method.tags %}virtual {% endif %}{{ method.name  }}({{ method.arguments | cpp_arguments(typemap,true) }});
+	{%- endif %}
+	{%- endfor %}
 	/* Property access functions */
 	{% for property in class.properties %}
 	// m_{{ property.name }} read function
@@ -49,7 +54,9 @@ public:
 	/* Other Methods */
 	
 	{%- for method in class.methods %}
+	{%- if "constructor" not in method.tags and "destructor" not in method.tags %}
 	{% if "abstract" in method.tags or "virtual" in method.tags %}virtual {% endif %}{{ method.return | cpp_type(typemap) }} {{ method.name  }}({{ method.arguments | cpp_arguments(typemap,true) }}){% if "abstract" in method.tags %} =0{% endif %};
+	{%- endif %}
 	{%- endfor %}
 	{% block public_extra %}
 	{%- endblock %}

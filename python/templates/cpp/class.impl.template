@@ -27,7 +27,7 @@ void {{class.name}}::set{{ property.name | capitalize }}({{ property.type | cpp_
 {% filter cpp_blockcomment %}
 {%- include "doxygen/method.template" %}
 {%- endfilter %}
-{{ method.return | cpp_type(typemap) }} {{class.name}}::{{ method.name  }}({{method.arguments | cpp_arguments(typemap)}})
+{% if "constructor" not in method.tags and "destructor" not in method.tags %}{{ method.return | cpp_type(typemap) }} {% endif %}{{class.name}}::{{ method.name  }}({{method.arguments | cpp_arguments(typemap)}})
 {
 {% filter cpp_section("user_code", method.name, class.name) %}
 	{%- if method.return %}
