@@ -1,9 +1,10 @@
 /*** {{ class.name }} class implementation ***/
 
 /* Property access functions */
-{%- block property_read %}
+{%- block property_read_write %}
 {% for property in class.properties %}
-{{ property.type | cpp_type(typemap) }}{% if "byref" in property.tags %}*{% endif %} {{class.name}}::{{ property.name }}() const
+{%- if "private" not in property.tags %}
+{{ property.type }}{% if "byref" in property.tags %}*{% endif %} {{class.name}}::{{ property.name }}() const
 {
 {% filter cpp_section("user_code", property.name, class.name, "custom_read" in property.tags) %}
 	return m_{{ property.name }};
@@ -11,13 +12,14 @@
 }
 {%- if "readonly" not in property.tags %}
 
-void {{class.name}}::set{{ property.name | capitalize }}({{ property.type | cpp_type }} _{{ property.name }})
+void {{class.name}}::set{{ property.name | capitalize }}({{ property.type }} _{{ property.name }})
 {
 {% filter cpp_section("user_code", property.name, class.name, "custom_write" in property.tags) %}
 	m_{{ property.name }} = _{{ property.name }};
 {%- endfilter %}
 }
-{%- endif %}
+{%- endif %}{# "readonly" #}
+{%- endif %}{# "private" #}
 {% endfor %}
 {%- endblock %}
 
@@ -27,19 +29,33 @@ void {{class.name}}::set{{ property.name | capitalize }}({{ property.type | cpp_
 {% filter cpp_blockcomment %}
 {%- include "doxygen/method.template" %}
 {%- endfilter %}
-{% if "constructor" not in method.tags and "destructor" not in method.tags %}{{ method.return | cpp_type(typemap) }} {% endif %}{{class.name}}::{{ method.name  }}({{method.arguments | cpp_arguments(typemap)}})
+{% if "constructor" not in method.tags and "destructor" not in method.tags %}{{ method.return }} {% endif %}{{class.name}}::{{ method.name  }}({{method.arguments | cpp_arguments}})
 {
-{% filter cpp_section("user_code", method.name, class.name) %}
-	{%- if method.return %}
-	{{ method.return | cpp_type(typemap) }} result;
+{%- if method.template %}
+{% include method.template %}
+{%- else %}
+	{%- if "constructor" in method.tags %}
+{% filter cpp_section("user_code", method.name, class.name, indent="	") %}
+		{%- for property in class.properties %}
+			{%- if property.default is defined %}
+	m_{{ property.name }} = {{ property.default }};
+			{%- endif %}
+		{%- endfor %}
+{%- endfilter %}{# cpp_section "user_code"... #}
+	{%- else %}
+{% filter cpp_section("user_code", method.name, class.name, indent="	") %}
+	{%- if method.return and method.return != "void" %}
+	{{ method.return }} result;
 	{%- endif %}
-	{%- if method.return %}
+	{%- if method.return and method.return != "void" %}
 	return result;
 	{%- endif %}
-{%- endfilter %}
+{%- endfilter %}{# cpp_section "user_code"... #}
+	{%- endif %}{# "constructor" #}
+{%- endif %}{# method.template... #}
 }
 {%- endif %}{# if "abstract" ... #}
 {% endfor %}
-{%- endblock %}
+{%- endblock %}{# block methods #}
 {% block other %}
 {%- endblock %}

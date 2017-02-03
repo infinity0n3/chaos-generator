@@ -1,4 +1,4 @@
-Function description
-{%- for argument in method.arguments %}
-@param {{ argument.name }}
+{{ method.brief }}
+{% for argument in method.arguments %}
+@param {{ argument.name }} {{ argument.brief }}
 {%- endfor %}

@@ -1,0 +1,108 @@
+{
+	"models": [
+		{
+			"name": "FunctionsDocument",
+			"package": "functions_document",
+			"interfaces": ["Document"],
+			"properties": [{
+				"name": "blocks",
+				"type": "vector<Block*>",
+				"tags": ["owns", "readonly"]
+			},{
+				"name": "connections",
+				"type": "vector<IOConnection*>",
+				"tags": ["owns", "readonly"]
+			}],
+			"methods": []
+		},
+		{
+			"name": "IOConnection",
+			"package": "io_connection",
+			"interfaces": ["JSONSerializable"],
+			"properties": [{
+				"name": "src",
+				"type": "BlockIO*",
+				"tags": ["ref_store"]
+			},{
+				"name": "dst",
+				"type": "vector<BlockIO*>",
+				"tags": ["ref_store"]
+			}],
+			"methods": []
+		},
+		{
+			"name": "Block",
+			"interfaces": ["JSONSerializable"],
+			"properties": [{
+				"brief": "Block name",
+				"name": "name",
+				"type": "string",
+				"brief": "The name of the Block",
+				"tags" : ["custom_write"]
+			}, {
+				"brief": "Block input ports",
+				"name": "inputs",
+				"brief": "Inputs of the Block",
+				"type": "vector<BlockIO*>",
+                "tags": ["readonly", "owns"]
+			}, {
+				"brief": "Block output ports",
+				"name": "outputs",
+				"brief": "Outputs of the Block",
+				"type": "vector<BlockIO*>",
+                "tags": ["readonly", "owns"]
+			}],
+			"methods": [{
+				"brief": "Add an input port",
+				"name" : "addInput",
+				"arguments" : [{
+					"name": "name",
+					"type": "string"
+				}, {
+					"name": "type",
+					"type": "string"
+				}],
+				"return" : "BlockIO*"
+			}, {
+				"brief": "Add an output port",
+				"name" : "addOutput",
+				"arguments" : [{
+					"name": "name",
+					"type": "string"
+				}, {
+					"name": "type",
+					"type": "string"
+				}],
+				"return" : "BlockIO*"
+			}]
+		},
+		{
+			"name": "BlockIO",
+			"interfaces" : ["JSONSerializable"],
+			"properties": [{
+				"brief": "IO name",
+				"name": "name",
+				"type": "string"
+			}, {
+				"brief": "IO type",
+				"name": "type",
+				"type": "string"
+			}, {
+				"name": "parent",
+				"type": "Block*",
+				"tags": ["readonly"]
+			}],
+			"methods": [{
+				"name":"BlockIO",
+				"arguments":[{
+					"name":"name",
+					"type":"string"
+				},{
+					"name":"type",
+					"type":"string"
+				}],
+				"tags":["constructor"]
+			}]
+		}
+	]
+}

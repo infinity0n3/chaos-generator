@@ -1,0 +1,18 @@
+	unsigned m_ref = 0;
+	if( m_ref_table.contains(prefix) )
+	{
+		m_ref = m_ref_table[prefix];
+	}
+
+	if( m_table.contains(ptr) )
+	{
+		QString ref = m_table[ptr];
+		return ref;
+	}
+	else
+	{
+		auto ref = QString("%1%2").arg(prefix).arg(m_ref++);
+		m_table.insert(ptr, ref);
+		m_ref_table.insert(prefix, m_ref);
+		return ref;
+	}

@@ -1,0 +1,4 @@
+	if(m_table.contains(ref))
+		return false;
+	m_table.insert(ref, ptr);
+	return true;

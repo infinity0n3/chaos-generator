@@ -29,7 +29,8 @@ private:
 	{%- block private %}
 	/* Properties */
 	{% for property in class.properties %}
-	{{ property.type | cpp_type(typemap) }} m_{{ property.name }}; // {{ property.brief }}
+	// {{ property.brief }}
+	{{ property.type }} m_{{ property.name }};
 	{%- endfor %}
 	{% block private_extra %}
 	{%- endblock %}
@@ -38,16 +39,18 @@ public:
 	{%- block public %}
 	{%- for method in class.methods %}
 	{%- if "constructor" in method.tags or "destructor" in method.tags %}
-	{% if "virtual" in method.tags %}virtual {% endif %}{{ method.name  }}({{ method.arguments | cpp_arguments(typemap,true) }});
+	{% if "virtual" in method.tags %}virtual {% endif %}{{ method.name  }}({{ method.arguments | cpp_arguments(true) }});
 	{%- endif %}
 	{%- endfor %}
 	/* Property access functions */
 	{% for property in class.properties %}
+	{%- if "private" not in property.tags %}
 	// m_{{ property.name }} read function
-	{{ property.type | cpp_type(typemap) }}{% if "byref" in property.tags %}*{% endif %} {{ property.name }}() const;
-	{%- if "readonly" not in property.tags %}
+	{{ property.type }}{% if "byref" in property.tags %}*{% endif %} {{ property.name }}() const;
+		{%- if "readonly" not in property.tags %}
 	// m_{{ property.name }} write function
-	void set{{ property.name | capitalize }}({{ property.type | cpp_type }} _{{ property.name }});
+	void set{{ property.name | capitalize }}({{ property.type }} _{{ property.name }});
+		{%- endif %}
 	{%- endif %}
 	{%- endfor %}
 	
@@ -55,7 +58,7 @@ public:
 	
 	{%- for method in class.methods %}
 	{%- if "constructor" not in method.tags and "destructor" not in method.tags %}
-	{% if "abstract" in method.tags or "virtual" in method.tags %}virtual {% endif %}{{ method.return | cpp_type(typemap) }} {{ method.name  }}({{ method.arguments | cpp_arguments(typemap,true) }}){% if "abstract" in method.tags %} =0{% endif %};
+	{% if "abstract" in method.tags or "virtual" in method.tags %}virtual {% endif %}{{ method.return }} {{ method.name  }}({{ method.arguments | cpp_arguments(true) }}){% if "abstract" in method.tags %} =0{% endif %};
 	{%- endif %}
 	{%- endfor %}
 	{% block public_extra %}

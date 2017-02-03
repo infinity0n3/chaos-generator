@@ -1,14 +1,17 @@
 import re
 
-type_parser = re.compile("((?P<container>\\w+)<)?(?P<type>\\w+)(?P<ptr>\*)?(?P<ref>\&)?(\[(?P<width>\d+)\])?>?(?P<container_ptr>\*)?(?P<container_ref>\&)?(\[(?P<container_width>\d+)\])?")
+type_parser = re.compile("((?P<container>\\w+)<)?(?P<type>\\w+)+(?P<ptr>\*)?(?P<ref>\&)?(\[(?P<width>\d+)\])?>?(?P<container_ptr>\*)?(?P<container_ref>\&)?(\[(?P<container_width>\d+)\])?")
 
 typemap = {
-	'vector' : 'std::vector',
-	'stack' : 'std::stack',
-	'queue' : 'std::queue',
-	'list'   : 'std::list',
-	'string' : 'std::string',
-	'wstring' : 'std::wstring'
+	# Builtin
+	'pointer'  : 'void',
+	# Containers
+	'vector'   : 'std::vector',
+	'stack'    : 'std::stack',
+	'queue'    : 'std::queue',
+	'list'     : 'std::list',
+	'string'   : 'std::string',
+	'wstring'  : 'std::wstring'
 };
 
 builtin_types = {

@@ -1,0 +1,11 @@
+	// qt store_to_json implementation
+	auto obj = QJsonObject();
+{%- for property in class.properties %}
+{%- if "dont_store" not in property.tags %}
+	{%- if property.type_class == "iterrable" %}
+	{%- else %}{# "iterrable" #}
+	// {{ property.name }}
+	{%- endif %}{# "iterrable" #}
+{%- endif %}
+{%- endfor %}
+	return obj;

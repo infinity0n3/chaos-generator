@@ -1,23 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8; -*-
 #
-# (c) 2016 FABtotum, http://www.fabtotum.com
-#
-# This file is part of FABUI.
-#
-# FABUI is free software; you can redistribute it and/or modify
+# Chaos-Generator
+# Copyright (C) 2017  Daniel Kesler <kesler.daniel@gmail.com>
+# 
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-#
-# FABUI is distributed in the hope that it will be useful,
+# 
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#
+# 
 # You should have received a copy of the GNU General Public License
-# along with FABUI.  If not, see <http://www.gnu.org/licenses/>.
-
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Import standard python module
 import argparse
@@ -29,52 +27,15 @@ import gettext
 # Import external modules
 
 # Import internal modules
-
+#https://github.com/Pitmairen/kate-jinja2-highlighting
 # Set up message catalog access
 tr = gettext.translation('chaos-generator', 'locale', fallback=True)
 _ = tr.ugettext
 
-#~ qt5_types = load_types("/home/daniel/Applications/qt/5.7/gcc_64/include")
-
-#~ with open("code_storm.models") as f:
-#~ with open("cycle_test.models") as f:
-	#~ content = json.loads( f.read() )
-	#~ models = content["models"]
-	#~ packages = content["packages"]
-
-#~ cpp_typemap.update(qt5_typemap)
-
-#~ project = {
-	#~ "project": "ChaosGenerator",
-	#~ "organization" : "Colibri-Embedded",
-	#~ "year": "2017",
-	#~ "authors" : [
-		#~ {"name":"Daniel Kesler", "email":"kesler.daniel@gmail.com"}
-	#~ ],
-	#~ "language" : "cpp",
-	#~ "framework" : "qt5"
-#~ }
-
-#~ gus, errors = cpp_generator_planning(models, packages, cpp_typemap, cpp_builtin_types, qt5_types)
-#~ tmp = cpp_generator_planning(models, packages, cpp_typemap)
-
-#~ for gu in gus:
-	#~ env = gu['env'].copy()
-	#~ env.update(project)
-	#~ create_from_template(gu['template'], gu['filename'], env, overwrite=True)
-
-#~ content = {
-	#~ "project" : project,
-	#~ "models" : models,
-	#~ "views" : []
-#~ }
-
 def cg_run(files, includes, templates, language, framework, output_path):
-	#~ from templating import create_from_template, create_dir, create_link, build_path
-	#~ from extensions.language.cpp import cpp_typemap, cpp_builtin_types, cpp_class_filename
-	#~ from extensions.framework.qt5 import load_types, qt5_typemap
-
-	#~ from analyzers.cpp import cpp_generator_planning
+	"""
+	
+	"""
 	import language.cpp  as cpp
 	import framework.qt5 as qt5_fw
 	
@@ -119,30 +80,44 @@ def cg_run(files, includes, templates, language, framework, output_path):
 	templates.insert(0, os.path.join(exe_file_path, "templates" ) )
 	templates.append( os.path.join(exe_file_path, "templates", language, "framework", framework ) )
 	
+	# Populate types
 	typemap = lang.typemap
 	typemap.update( fwk.typemap )
-	
 	fwk_types = fwk.load_from_includes(includes)
-	#~ print typemap
+	
+	# Generate templating environment
 	templating_env = lang.create_templating_environment(templates)
 	
+	fwk.extend_templating_environment(templating_env)
+	
+	# Initialize variables
 	models = []
 	views = []
 	packages = {}
 	project = {}
 	
+	# Load project, models, packages, views
 	for fn in files:
 		with open(fn) as f:
+			print ">>", fn
 			content = json.loads( f.read() )
 			if 'models' in content:
 				models.extend( content['models'] )
 			if 'project' in content:
 				project.update( content['project'] )
+			if 'packages' in content:
+				packages.update( content['packages'] )
 	
-	#~ gus, errors = cpp_generator_planning(models, packages, cpp_typemap, cpp_builtin_types, qt5_types)
+	# Create generation plan
 	units, planner_error = lang.planner(models, packages, typemap, lang.builtin_types, fwk_types)
 	
+	if planner_error:
+		result['errors'].extend(planner_error)
+		return result
 	
+	units.extend( fwk.create_extra_units(units, output_path) )
+	
+	# Generate files
 	lang.create_dir(output_path)
 	for unit in units:
 		unit_env = unit['env'].copy()
@@ -184,6 +159,9 @@ def main():
 	
 	for e in result['errors']:
 		print e
+		
+	if result['errors']:
+		exit(1)
 
 if __name__ == "__main__":
     main()

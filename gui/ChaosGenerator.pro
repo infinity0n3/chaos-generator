@@ -30,22 +30,18 @@ HEADERS  += mainwindow.h
 
 FORMS    += mainwindow.ui
 
-#include("models.pri")
+#PRE_TARGETDEPS += models/cg_models.pri
 
-DISTFILES += cg.models
+CG_FILES = cg.project cg.models
 
-PRE_TARGETDEPS += models/cg_models.pri
-
-CG_FILES = cg.models
-
-#cg.target  = cg_models.pri
-cg.commands = python ../python/chaos-gen.py cg.project cg.models -l c++ --framework qt5 -o models $(INCPATH)
+cg.target  = cg_models.pri
+cg.commands = python ../python/chaos-gen.py ${QMAKE_FILE_NAME} -l c++ --framework qt5 -o models $(INCPATH)
 cg.output = models/cg_models.pri
-#cg.depends =
+cg.depends =
 cg.input = CG_FILES
-cg.CONFIG = no_link
+cg.CONFIG = no_link combine
 
 QMAKE_EXTRA_COMPILERS += cg
 
+INCLUDEPATH += ./models
 include( "models/cg_models.pri" )
-#include( "${QMAKE_FILE_BASE}_models.pri" )

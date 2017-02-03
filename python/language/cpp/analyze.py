@@ -1,21 +1,22 @@
 import re
 from copy import deepcopy
-from language.cpp.filter import cpp_type_parser, cpp_type_filter, cpp_class_filename
+from language.cpp.filter import cpp_disect_type, cpp_type_filter, cpp_class_filename
 
 from tarjan import tarjan
 
-def cpp_extract_types(value, typemap):
+def cpp_extract_types(value, container_extras=False, contained_extras=False):
 	"""
 	Extract type and container from CONTAINER<TYPE> notation
 	"""
 	result = []
-	m = cpp_type_parser.search(value)
 	
-	if m.group('type'):
-		result.append( cpp_type_filter(m.group('type')) )
+	m = cpp_disect_type(value)
+	
+	for t in m['types']:
+		result.append( t['name'] + (t['extra'] if contained_extras else "") )
 		
-	if m.group('container'):
-		result.append( cpp_type_filter(m.group('container')) )
+	if m['container']:
+		result.append( m['container'] + (t['extra'] if container_extras else "") )
 		
 	return result
 
@@ -46,6 +47,59 @@ def cpp_position(a, b, group):
 	else:
 		return "same"
 
+def cpp_convert_types(model, typemap):
+	
+	iterrable = ["vector", "list", "queue", "set"]
+	collection = ["stack"]
+	
+	for propertie in model['properties'] if 'properties' in model else []:
+		raw_type = propertie['type']
+		type_class = 'value'
+		
+		t = cpp_extract_types(raw_type, contained_extras=True)
+		if len(t) > 1:
+			container = t[-1]
+			if container in iterrable:
+				type_class = 'iterrable'
+			propertie['contained'] = {
+				"name" : propertie['name'],
+				"type" : t[0]
+			}
+		
+		propertie['type'] = cpp_type_filter(raw_type, typemap)
+		propertie['type_class'] = type_class
+		print propertie
+	
+	for method in model['methods'] if 'methods' in model else []:
+		
+		if 'return' in method:
+			raw_type = method['return']
+			method['return'] = cpp_type_filter(raw_type, typemap)
+		
+		for argument in method['arguments'] if 'arguments' in method else []:
+			raw_type = argument['type']
+			type_class = 'value'
+			
+			t = cpp_extract_types(raw_type, contained_extras=True)
+			if len(t) > 1:
+				container = t[-1]
+				if container in iterrable:
+					type_class = 'iterrable'
+				argument['contained'] = {
+					"name" : argument['name'],
+					"type" : t[0]
+				}
+				
+			argument['type'] = cpp_type_filter(raw_type, typemap)
+			argument['type_class'] = type_class
+	
+	
+	print 
+	print model
+	print "---"
+	
+	return model
+
 def planner(models, packages, typemap, builtin_types = {}, library_types = {}, custom_types = {}, cpp_ext='.cpp', hpp_ext='.h' ):
 	
 	model_uses = {}
@@ -53,12 +107,13 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 	model_package = {}
 	model_env = {}
 	
-	errors = {}
+	errors = []
 	
 	for model in models:
 		name = model['name']
-		model_env[name] = model.copy()
-		
+		print "++", name
+		model_env[name] = cpp_convert_types( model.copy(), typemap )
+	
 	# Gather model type usage
 	for name in model_env:
 		model = model_env[name]
@@ -73,9 +128,12 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 			for method in model['methods']:
 				if method['name'] == name:
 					default_contructor = False
+					
 				if 'return' not in method:
 					method['return'] = 'void'
+					
 				if 'tags' in method:
+					print model['name'], method['name'], method['tags']
 					if 'abstract' in method['tags']:
 						is_abstract = True
 		
@@ -113,15 +171,17 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 								model['methods'] = [method_impl]
 					
 		for propertie in model['properties'] if 'properties' in model else []:
-			types = cpp_extract_types(propertie['type'], typemap)
+			types = cpp_extract_types(propertie['type'])
 			for t in types:
 				if t not in model_types:
 					model_types.append(t)
 		
+		# Add default desctructor
 		if default_destructor:
 			destructor = {
 				'name' : '~' + name,
-				'tags' : ['destructor']
+				'tags' : ['destructor'],
+				'brief': "Default desctructor"
 			}
 			if is_abstract:
 				destructor['tags'].append('virtual')
@@ -131,10 +191,12 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 			else:
 				model['methods'].insert(0, destructor)
 		
+		# Add default constructor
 		if default_contructor:
 			constructor = {
 				'name' : name,
-				'tags' : ['constructor']
+				'tags' : ['constructor'],
+				'brief': "Default constructor"
 			}
 			if 'methods' not in model:
 				model['methods'] = [constructor]
@@ -144,7 +206,7 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 		if 'methods' in model:
 			for method in model['methods']:
 				for argument in method['arguments'] if 'arguments' in method else []:
-					types = cpp_extract_types(argument['type'], typemap)
+					types = cpp_extract_types(argument['type'])
 					for t in types:
 						if t not in model_types:
 							model_types.append(t)
@@ -160,6 +222,34 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 				break
 		if not has_package:
 			model_package[name] = model['package'] if 'package' in model else cpp_class_filename(name)
+	
+	
+	## Check reference validity
+	has_errors = False
+	for m in model_uses:
+		for dep in model_uses[m]:
+			if ( dep not in builtin_types and
+			   dep not in library_types and 
+			   dep not in model_uses ):
+				errors.append({
+					"type": "critical",
+					"msg": "Model '{0}' references an undefined model '{1}'".format(m, dep)
+				})
+				has_errors = True
+				
+	for m in model_inherits:
+		for dep in model_inherits[m]:
+			if ( dep not in builtin_types and
+			   dep not in library_types and 
+			   dep not in model_uses ):
+				errors.append({
+					"type": "critical",
+					"msg": "Model '{0}' inherits an undefined model '{1}'".format(m, dep)
+				})
+				has_errors = True
+	
+	if has_errors:
+		return [], errors
 	
 	scc = tarjan(model_uses)
 	
@@ -206,7 +296,7 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 						same_package = (pkg1 == pkg2)
 						same_group = (dep in group)
 						
-						include = '"'+cpp_class_filename(dep)+hpp_ext+'"'
+						include = '"'+model_package[dep]+hpp_ext+'"'
 						
 						if r == None:
 							if not same_package:
@@ -217,8 +307,8 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 						elif r == "after":
 							fwd_hpp.append(dep)
 							
-						if not same_group:
-							if include not in inc_hpp:
+						if not same_package:
+							if include not in inc:
 								inc.append( include )
 				
 				model_env[m]['forwards'] = fwd_hpp

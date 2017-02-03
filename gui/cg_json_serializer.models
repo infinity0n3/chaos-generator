@@ -1,0 +1,91 @@
+{
+	"models": [{
+		"name": "JSONSerializable",
+		"package": "json_serializable",
+		"properties": [],
+		"methods": [{
+			"name": "toJSONObject",
+			"return": "jsonobject",
+			"template": "store_to_json_object.impl.template",
+			"arguments": [{
+				"name": "sr",
+				"type": "Serializer&"
+			}],
+			"tags": ["abstract"]
+		}, {
+			"name": "fromJSONObject",
+			"return": "bool",
+			"template": "load_from_json_object.impl.template",
+			"arguments": [{
+				"name": "json",
+				"type": "jsonobject&"
+			}, {
+				"name": "ds",
+				"type": "Deserializer*"
+			}],
+			"tags": ["abstract"]
+		}]
+	}, {
+		"name": "Serializer",
+		"properties": [{
+			"name": "table",
+			"brief": "Object to reference hash table",
+			"type": "hash<pointer*,string>",
+			"tags": ["private"]
+		}, {
+			"name": "ref_table",
+			"brief": "Object reference counter",
+			"type": "hash<string,unsigned>",
+			"tags": ["private"]
+		}],
+		"methods": [{
+			"brief": "Store pointer to serializer and return it's reference",
+			"name": "toRef",
+			"return": "string",
+			"template": "generic_serializer.to_ref.impl.template",
+			"arguments": [{
+				"name": "ptr",
+				"type": "pointer*",
+				"brief": "Pointer to object"
+			}, {
+				"name": "prefix",
+				"type": "string",
+				"default": "\"ref\"",
+				"brief": "Alternative reference prefix. Default is \"ref\""
+			}]
+		}]
+	}, {
+		"name": "Deserializer",
+		"properties": [{
+			"name": "table",
+			"brief": "Reference to object hash table",
+			"type": "hash<string,pointer*>",
+			"tags": ["private"]
+		}],
+		"methods": [{
+			"brief": "Return object pointer designated to the provided reference",
+			"name": "fromRef",
+			"return": "pointer*",
+			"template": "generic_deserializer.from_ref.impl.template",
+			"arguments": [{
+				"name": "ref",
+				"type": "string",
+				"brief": "Object reference"
+			}]
+		}, {
+			"brief": "Store an object and it's reference to the deserializer",
+			"name": "storeObject",
+			"return": "bool",
+			"template": "generic_deserializer.store_object.impl.template",
+			"arguments": [{
+				"name": "ptr",
+				"type": "pointer*",
+				"brief": "Object pointer"
+			}, {
+				"name": "ref",
+				"type": "string",
+				"brief": "Object reference"
+			}]
+		}]
+	}]
+}

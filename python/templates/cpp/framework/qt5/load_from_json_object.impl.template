@@ -1,0 +1,9 @@
+	// qt load_from_json implementation
+{%- for property in class.properties %}
+{%- if "dont_store" not in property.tags %}
+	// if( json.contains("{{ property.name }}") )
+	// {
+	// 		m_{{ property.name }} = {{ property | qt_from_jsonvalue("json") }};
+	// }
+{%- endif %}
+{%- endfor %}

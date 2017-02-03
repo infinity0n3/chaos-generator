@@ -1,0 +1,11 @@
+{
+	"models": [
+		{
+			"name": "ModelsDocument",
+			"package": "models_document",
+			"interfaces": ["Document"],
+			"properties": [],
+			"methods": []
+		}
+	]
+}

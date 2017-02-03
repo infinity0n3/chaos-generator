@@ -4,7 +4,9 @@ import jinja2
 from language.cpp.filter import cpp_blockcomment_filter, \
 	cpp_linecomment_filter, cpp_block_filter, cpp_type_filter, \
 	cpp_arguments_filter, cpp_section_filter, cpp_extract_sections, \
-	cpp_defprotect, cpp_list_filter
+	cpp_defprotect, cpp_list_filter, cpp_declare_var_filter, cpp_attr_filter
+
+from language.cpp.test import cpp_is_ptr_test, cpp_is_ref_test
 
 def create_templating_environment(template_paths):
 	loaders = []
@@ -24,6 +26,11 @@ def create_templating_environment(template_paths):
 	templateEnv.filters['cpp_arguments'] = cpp_arguments_filter
 	templateEnv.filters['cpp_section'] = cpp_section_filter
 	templateEnv.filters['cpp_list'] = cpp_list_filter
+	templateEnv.filters['cpp_declare_var'] = cpp_declare_var_filter
+	templateEnv.filters['cpp_attr'] = cpp_attr_filter
+	
+	templateEnv.tests['cpp_is_ptr'] = cpp_is_ptr_test
+	templateEnv.tests['cpp_is_ref'] = cpp_is_ref_test
 	
 	return templateEnv
 		
@@ -36,11 +43,11 @@ def create_file_from_template(template, output, env = {}, overwrite = False, pre
 			return
 			
 		if overwrite and preserve:
-			class_name = ''
-			if 'class' in env:
-				if 'name' in env['class']:
-					class_name = env['class']['name']
-			sections = cpp_extract_sections(output, class_name)
+			sections = {}
+			for iclass in env['classes'] if 'classes' in env else []:
+				class_name = iclass['name'] or ""
+				sec = cpp_extract_sections(output, class_name)
+				sections.update(sec)
 			env['sections'] = sections
 			
 	if 'filename' not in env:

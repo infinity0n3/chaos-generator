@@ -1,0 +1,3 @@
+	if(m_table.contains(ref))
+		return m_table[ref];
+	return nullptr;

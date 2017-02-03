@@ -1,0 +1,32 @@
+{	
+	"models": [
+		{
+			"name": "Document",
+			"properties":[{
+				"name": "undostack",
+				"type": "undostack*",
+				"tags": ["owns", "readonly"]
+			},{
+				"name": "filename",
+				"type": "string"
+			}],
+			"methods":[{
+				"name": "saveToFile",
+				"return": "bool",
+				"arguments": [{
+					"name": "filename",
+					"type": "string"
+				}],
+				"tags": ["abstract"]
+			},{
+				"name": "loadFromFile",
+				"return": "bool",
+				"arguments": [{
+					"name": "filename",
+					"type": "string"
+				}],
+				"tags": ["abstract"]
+			}]
+		}
+	]
+}

@@ -1,7 +1,16 @@
-from language.cpp import type_parser as cpp_type_parser, \
-						 typemap as cpp_typemap
+from language.cpp import typemap as cpp_typemap
 import re
 from jinja2 import contextfilter
+
+container_parser = re.compile("((?P<container>\\w+)<)?(?P<type>(\\w|[,*&])+)>?(?P<ptr>\*)?(?P<ref>\&)?(\[(?P<width>\d+)\])?")
+type_parser = re.compile("(?P<type>\\w+)(?P<ptr>\*)?(?P<ref>\&)?(\[(?P<width>\d+)\])?")
+
+def cpp_by_value_filter(var_name, var_type):
+	pass
+
+def cpp_attr_filter(var_name, var_type, attr, prefix='', suffix=''):
+	attr_access = '->' if var_type[-1] == '*' else '.'
+	return prefix+var_name+suffix + attr_access + attr
 
 def cpp_defprotect(value):
 	result = value
@@ -59,51 +68,86 @@ def cpp_block_filter(block, terminate=False):
 	
 	return "\n".join(lines)
 
+def cpp_disect_type(decl):
+	result = {}
+	
+	m = container_parser.search(decl)
+
+	container = m.group("container")
+	contained_types = m.group("type") or ""
+	container_ptr = m.group("ptr") or ""
+	container_ref = m.group("ref") or ""
+	container_width = ""
+	if m.group("width"):
+		container_width = "[{0}]".format(m.group("width"))
+
+	result["container"] = m.group("container") or ""
+	result["width"] = m.group("width") or ""
+	result["extra"] = container_ptr + container_ref
+
+	types = []
+
+	tl = contained_types.split(',')
+	for t in tl:
+		m = type_parser.search(t)
+		if m:
+			ptr = m.group("ptr") or ""
+			ref = m.group("ref") or ""
+			var_type = m.group("type")
+			types.append({
+				"name": var_type,
+				"extra": ptr + ref
+			})
+
+	result["types"] = types
+
+	return result
+
 def cpp_type_filter(typename, typemap=None):
+	
 	
 	if not typename:
 		return 'void'
 	
 	if not typemap:
 		typemap = cpp_typemap
-	
-	m = cpp_type_parser.search(typename)
-	
-	is_array = int(m.group('width')) if m.group('width') else None
-	ptr = '*' if m.group('ptr') == '*' else ''
-	ref = '&' if m.group('ref') == '&' else ''
-	typename = m.group('type')
-	has_container = m.group('container')
-	
-	if typename in typemap:
-		typename = typemap[typename]
-	
-	result = typename + ptr + ref
-	
-	if has_container:
-		
-		if has_container in typemap:
-			container = typemap[has_container]
-		
-		container_ptr = '*' if m.group('container_ptr') else ''
-		container_ref = '&' if m.group('container_ref') else ''
-		result = container + '< ' + result + ' >' + container_ptr + container_ref
+
+	m = cpp_disect_type(typename)
+
+	result = ''
+
+	types = []
+
+	for t in m['types']:
+		var_type = t['name']
+		if var_type in typemap:
+			var_type = typemap[var_type]
+		types.append( var_type + t['extra'] )
+
+	if m['container']:
+		container = m['container']
+		if container in typemap:
+			container = typemap[container]
+		container_width = ""
+		if m['width']:
+			container_width = "[" + m['width'] + "]"
+			
+		result = "{0}<{1}>{2}{3}".format(container, ",".join(types), m['extra'], container_width)
+	else:
+		result = types[0]
 	
 	return result
 
-def cpp_arguments_filter(arg_list, typemap=None, use_default=False):
+def cpp_arguments_filter(arg_list, use_default=False):
 	if not arg_list:
 		return ''
-		
-	if not typemap:
-		typemap = cpp_typemap
 		
 	result = ''
 	prefix = ''
 	for arg in arg_list:
-		result += prefix + cpp_type_filter(arg['type'], typemap) + ' ' + arg['name']
-		#~ if "default" in p:
-			#~ ret = ret + ' = ' + p["default"]
+		result += prefix + arg['type'] + ' ' + arg['name']
+		if "default" in arg and use_default:
+			result += ' = ' + arg["default"]
 		if not prefix:
 			prefix = ', '
 			
@@ -122,13 +166,15 @@ def cpp_list_filter(arg_list):
 			
 	return result
 
+def cpp_declare_var_filter(var_type, var_name):
+	return var_type + " " + var_name
+
 cpp_indent = re.compile("(?P<indent>\\s*)(?P<code>.*)")
 
 @contextfilter
-def cpp_section_filter(context, value, section_name, method_name='', class_name='', condition=True):
+def cpp_section_filter(context, value, section_name, method_name='', class_name='', condition=True, indent=''):
 	
 	lines = value.split('\n')
-	indent = ''
 	
 	if not lines[0]:
 		lines.pop(0)

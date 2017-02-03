@@ -1,0 +1,29 @@
+	// qt store_to_json implementation
+	auto obj = QJsonObject();
+{%- for property in class.properties %}
+{%- if "dont_store" not in property.tags %}
+	{%- if property.type_class == "iterrable" %}
+	auto {{ property.name }}_array = QJsonArray();
+	{{ property.contained.type | cpp_declare_var(property.name+"_item") }};
+	foreach({{ property.name }}_item, m_{{property.name}})
+	{
+		{%- if "ref_store" in property.tags %}
+		{%- set ref_var_name = property.name + "_tmp_ref" %}
+		unsigned {{ ref_var_name }} = {{ property.name | cpp_attr(property.contained.type, "ref()", suffix="_item") }};
+		{{ property.name }}_array.append(  {{ ref_var_name | qt_to_jsonvalue("unsigned") }}; );
+		{%- else %}
+		auto {{ property.name }}_tmp_obj = {{ property.contained | qt_to_jsonvalue(suffix="_item") }};
+		{{ property.name }}_array.append( {{ property.name }}_tmp_obj );
+		{%- endif %}
+	}
+	obj["{{ property.name }}"] = {{ property.name }}_array;
+	{%- else %}
+		{%- if "ref_store" in property.tags %}
+	obj["{{ property.name }}"] = {{ property.name | cpp_attr(property.type, "ref()", prefix="m_") }} ;
+		{%- else %}
+	obj["{{ property.name }}"] = {{ property | qt_to_jsonvalue(prefix="m_") }} ;
+		{%- endif %}
+	{%- endif %}
+{%- endif %}
+{%- endfor %}
+	return obj;
