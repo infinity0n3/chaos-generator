@@ -8,13 +8,13 @@ INPUT = cg.project \
 		cg_document_functions2.models \
 		cg_stylable.models
             
-#~ INC = -I /opt/qt5/include/QtCore \
-#~ 	  -I /opt/qt5/include/QtWidgets
+INC = -I /opt/qt5/include/QtCore \
+ 	  -I /opt/qt5/include/QtWidgets
 
-INC = -I/home/daniel/Applications/qt/5.7/gcc_64/include \
-	  -I/home/daniel/Applications/qt/5.7/gcc_64/include/QtWidgets \
-	  -I/home/daniel/Applications/qt/5.7/gcc_64/include/QtGui \
-	  -I/home/daniel/Applications/qt/5.7/gcc_64/include/QtCore
+#INC = -I/home/daniel/Applications/qt/5.7/gcc_64/include \
+#	  -I/home/daniel/Applications/qt/5.7/gcc_64/include/QtWidgets \
+#	  -I/home/daniel/Applications/qt/5.7/gcc_64/include/QtGui \
+#	  -I/home/daniel/Applications/qt/5.7/gcc_64/include/QtCore
 
 all: $(INPUT)
 	$(CGG) $^ -l c++ --framework qt5 -o out $(INC)

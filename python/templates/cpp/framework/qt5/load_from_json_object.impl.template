@@ -9,7 +9,23 @@
 {%- if "dont_store" not in property.tags %}
 	if( json.contains("{{ property.name }}") )
 	{
+	{%- if property.type_class == "iterrable" %}
+		QJsonValue item;
+		auto items = json["{{ property.name }}"].toArray();
+		foreach(item, items)
+		{
+			//auto new_item_obj = 
+			QJsonObject obj = item.toObject();
+			
+		}
+	{%- else %}
+		{%- if "ref_store" in property.tags %}
+		auto ref = json["{{ property.name }}"].toString();
+		m_{{ property.name }} = ({{ property.type }})ds.fromRef(ref);
+		{%- else %}
 		m_{{ property.name }} = {{ property | qt_from_jsonvalue("json", deserializer="ds") }};
+		{%- endif %}
+	{%- endif %}
 	}
 {%- endif %}
 {% endfor %}

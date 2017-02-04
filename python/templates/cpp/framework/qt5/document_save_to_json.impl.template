@@ -9,8 +9,8 @@
 	
 	// Document header
 	auto header = QJsonObject();
-	header["version"] = 1;
-	header["type"]    = "document";
+	header["version"] = QJsonValue(1);
+	header["type"]    = QJsonValue( QString("document") );
 	json_root["header"] = header;
 	
 	// Document content
