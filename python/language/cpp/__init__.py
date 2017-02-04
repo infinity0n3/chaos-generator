@@ -15,6 +15,7 @@ typemap = {
 };
 
 builtin_types = {
+	'bool': [],
 	'unsigned': [],
 	'int': [],
 	'char': [],

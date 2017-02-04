@@ -16,7 +16,6 @@
 		.name
 	
 #}
-
 {%- for fwd in class.forwards %}
 class {{ fwd }};
 {% endfor %}
@@ -29,10 +28,12 @@ private:
 	{%- block private %}
 	/* Properties */
 	{% for property in class.properties %}
+	{%- if "private" in property.tags %}
 	// {{ property.brief }}
-	{{ property.type }} m_{{ property.name }};
+	{% if "const" in property.tags %}const {% endif %}{{ property.type }} m_{{ property.name }};
+	{%- endif %}
 	{%- endfor %}
-	{% block private_extra %}
+	{%- block private_extra %}
 	{%- endblock %}
 	{%- endblock %}
 public:
@@ -42,29 +43,24 @@ public:
 	{% if "virtual" in method.tags %}virtual {% endif %}{{ method.name  }}({{ method.arguments | cpp_arguments(true) }});
 	{%- endif %}
 	{%- endfor %}
-	/* Property access functions */
-	{% for property in class.properties %}
-	{%- if "private" not in property.tags %}
-	// m_{{ property.name | cpp_camel_name }} read function
-	{{ property.type }}{% if "byref" in property.tags %}*{% endif %} {{ property.name | cpp_camel_name }}() const;
-		{%- if "readonly" not in property.tags %}
-	// m_{{ property.name | cpp_camel_name }} write function
-	void set{{ property.name | cpp_camel_name(True) }}({{ property.type }} _{{ property.name }});
-		{%- endif %}
-	{%- endif %}
-	{%- endfor %}
 	
 	/* Other Methods */
 	
 	{%- for method in class.methods %}
 	{%- if "constructor" not in method.tags and "destructor" not in method.tags %}
-	{% if "abstract" in method.tags or "virtual" in method.tags %}virtual {% endif %}{{ method.return }} {{ method.name  }}({{ method.arguments | cpp_arguments(true) }}){% if "abstract" in method.tags %} =0{% endif %};
+	{% if "abstract" in method.tags or "virtual" in method.tags %}virtual {% endif %}{% if "return_const" in method.tags %}const {% endif %}{{ method.return }} {{ method.name  }}({{ method.arguments | cpp_arguments(true) }}){% if "abstract" in method.tags %} =0{% endif %}{% if "const" in method.tags %} const{% endif %};
 	{%- endif %}
 	{%- endfor %}
 	{% block public_extra %}
 	{%- endblock %}
 	{%- endblock %}
 protected:
+	{% for property in class.properties %}
+	{%- if "protected" in property.tags %}
+	// {{ property.brief }}
+	{% if "const" in property.tags %}const {% endif %}{{ property.type }} m_{{ property.name }};
+	{%- endif %}
+	{%- endfor %}
 	{%- block protected %}
 	{%- endblock %}
 	{%- block protected_extra %}

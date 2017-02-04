@@ -78,8 +78,9 @@ def cg_run(files, includes, templates, language, framework, output_path, suggest
 	
 	# Prepend default template search path
 	exe_file_path = os.path.dirname(os.path.realpath(__file__))
-	templates.insert(0, os.path.join(exe_file_path, "templates" ) )
+	#~ templates.insert(0, os.path.join(exe_file_path, "templates" ) )
 	templates.append( os.path.join(exe_file_path, "templates", language, "framework", framework ) )
+	templates.append( os.path.join(exe_file_path, "templates" ) )
 	
 	# Populate types
 	typemap = lang.typemap

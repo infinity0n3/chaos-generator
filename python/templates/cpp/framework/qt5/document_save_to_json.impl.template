@@ -1,0 +1,28 @@
+	// save document to json
+	
+	if(_filename == "")
+		return false;
+		
+	setFileName(_filename);
+	auto sr = Serializer();
+	auto json_root = QJsonObject();
+	
+	// Document header
+	auto header = QJsonObject();
+	header["version"] = 1;
+	header["type"]    = "document";
+	json_root["header"] = header;
+	
+	// Document content
+	auto content = toJSONObject(sr);
+	json_root["content"] = content;
+
+	// Save JSON values to file
+	auto doc = QJsonDocument(json_root);
+	auto data = doc.toJson(QJsonDocument::Indented);
+	QFile file( _filename );
+	file.open(QIODevice::WriteOnly);
+	file.write(data);
+	file.close();
+	
+	return true;

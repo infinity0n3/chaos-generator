@@ -5,12 +5,12 @@
 			"name": "table",
 			"brief": "Object to reference hash table",
 			"type": "hash<pointer*,string>",
-			"tags": ["private"]
+			"tags": ["no_read", "no_write"]
 		}, {
 			"name": "ref_table",
 			"brief": "Object reference counter",
 			"type": "hash<string,unsigned>",
-			"tags": ["private"]
+			"tags": ["no_read", "no_write"]
 		}],
 		"methods": [{
 			"brief": "Store pointer to serializer and return it's reference",

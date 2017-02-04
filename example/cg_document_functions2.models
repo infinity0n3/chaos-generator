@@ -3,32 +3,23 @@
 		{
 			"name": "FunctionsDocument",
 			"package": "functions_document",
-			"interfaces": ["Document"],
+			"interfaces": ["Document", "JSONSerializable"],
 			"properties": [{
 				"name": "blocks",
 				"type": "vector<Block*>",
 				"tags": ["no_write"]
 			},{
-				"name": "connections",
-				"type": "vector<Link*>",
+				"name": "links",
+				"type": "vector<BlockLink*>",
 				"tags": ["no_write"]
 			}],
 			"methods": []
 		},
 		{
-			"name": "IOConnection",
-			"package": "io_connection",
+			"name": "BlockLink",
+			"package": "block_link",
 			"interfaces": ["JSONSerializable"],
-			"properties": [{
-				"name": "src",
-				"type": "BlockIO*",
-				"tags": ["foreign"]
-			},{
-				"name": "dst",
-				"type": "vector<BlockIO*>",
-				"tags": ["foreign"]
-			}],
-			"methods": []
+			"extends": ["Link"]
 		},
 		{
 			"name": "Block",
@@ -78,14 +69,11 @@
 		},
 		{
 			"name": "BlockIO",
-			"interfaces" : ["JSONSerializable"],
+			"package": "block_io",
+			"interfaces" : ["JSONSerializable", "Linkable"],
 			"properties": [{
 				"brief": "IO name",
 				"name": "name",
-				"type": "string"
-			}, {
-				"brief": "IO type",
-				"name": "type",
 				"type": "string"
 			}, {
 				"name": "parent",

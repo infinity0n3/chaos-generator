@@ -8,6 +8,20 @@ type_parser = re.compile("(?P<type>\\w+)(?P<ptr>\*)?(?P<ref>\&)?(\[(?P<width>\d+
 def cpp_by_value_filter(var_name, var_type):
 	pass
 
+def cpp_to_ref_filter(var_type, const=False):
+	result = var_type
+	
+	is_ptr = '*' in var_type
+	is_ref = '&' in var_type
+	
+	if not is_ptr and not is_ref:
+		result += '&'
+		
+	if const:
+		result = 'const ' + result
+	
+	return result
+
 def cpp_camel_name_filter(name, capitalize_first=False):
 	tags = re.split("[ _-]", name)
 	
@@ -161,7 +175,11 @@ def cpp_arguments_filter(arg_list, use_default=False):
 	result = ''
 	prefix = ''
 	for arg in arg_list:
-		result += prefix + arg['type'] + ' ' + arg['name']
+		const = ''
+		if 'tags' in arg:
+			if 'const' in arg['tags']:
+				const = 'const '
+		result += const + prefix + arg['type'] + ' ' + arg['name']
 		if "default" in arg and use_default:
 			result += ' = ' + arg["default"]
 		if not prefix:

@@ -1,6 +1,7 @@
 import re
 from copy import deepcopy
-from language.cpp.filter import cpp_disect_type, cpp_type_filter, cpp_class_filename
+from language.cpp.filter import cpp_disect_type, cpp_type_filter, \
+	cpp_class_filename, cpp_camel_name_filter, cpp_to_ref_filter
 
 from tarjan import tarjan
 
@@ -49,31 +50,52 @@ def cpp_position(a, b, group):
 
 def cpp_convert_types(model, typemap):
 	
-	iterrable = ["vector", "list", "queue", "set"]
+	iterrable = ["vector", "list", "queue", "set", "hash"]
 	collection = ["stack"]
+	
+	for extra_deps in model['extra_deps'] if 'extra_deps' in model else []:
+		tmp = []
+		for t in model['extra_deps']:
+			tmp.append( cpp_type_filter(t, typemap) )
+		model['extra_deps'] = tmp
 	
 	for propertie in model['properties'] if 'properties' in model else []:
 		raw_type = propertie['type']
 		type_class = 'value'
+		
+		tags = []
+		if 'tags' in propertie:
+			tags = propertie['tags']
 		
 		t = cpp_extract_types(raw_type, contained_extras=True)
 		if len(t) > 1:
 			container = t[-1]
 			if container in iterrable:
 				type_class = 'iterrable'
+			propertie['container'] = container
 			propertie['contained'] = {
+				"container" : container,
 				"name" : propertie['name'],
-				"type" : t[0]
+				"type" : cpp_type_filter(t[0])
 			}
 		
 		propertie['type'] = cpp_type_filter(raw_type, typemap)
 		propertie['type_class'] = type_class
+		
+		if 'foreign' in tags:
+			if 'const' not in tags and 'contained' not in propertie:
+				tags.append('const')
+				
+			if 'ref_store' not in tags:
+				tags.append('ref_store')
 	
 	for method in model['methods'] if 'methods' in model else []:
 		
 		if 'return' in method:
 			raw_type = method['return']
 			method['return'] = cpp_type_filter(raw_type, typemap)
+		else:
+			method['return'] = 'void'
 		
 		for argument in method['arguments'] if 'arguments' in method else []:
 			raw_type = argument['type']
@@ -84,15 +106,257 @@ def cpp_convert_types(model, typemap):
 				container = t[-1]
 				if container in iterrable:
 					type_class = 'iterrable'
+				argument['container'] = container
 				argument['contained'] = {
+					"container" : container,
 					"name" : argument['name'],
-					"type" : t[0]
+					"type" : cpp_type_filter(t[0])
 				}
 				
 			argument['type'] = cpp_type_filter(raw_type, typemap)
 			argument['type_class'] = type_class
 	
 	return model
+
+def preprocess_types(models, model_env, typemap):
+	
+	def add_if_not_exists(container, item):
+		for obj in container:
+			if obj['name'] == item['name']:
+				return
+		
+		container.append(item)
+	
+	print "== processing types =="
+	for model in models:
+		name = model['name']
+		print "++", name
+		model_env[name] = cpp_convert_types( model.copy(), typemap )
+		
+	for name in model_env:
+		model = model_env[name]
+		
+		extends = model.pop("extends", [])
+		if extends:
+			tags 		= model['tags'] if 'tags' in model else []
+			methods 	= model['methods'] if 'methods' in model else []
+			properties 	= model['properties'] if 'properties' in model else []
+			interfaces 	= model['interfaces'] if 'interfaces' in model else []
+			parents 	= model['parents'] if 'parents' in model else []
+			
+			for ex_name in extends:
+				print "   EXTENDS", ex_name, " -> ", name
+				
+				ex = model_env[ex_name]
+				
+				for method in ex['methods'] if 'methods' in ex else []:
+					add_if_not_exists(methods, method)
+						
+				for propertie in ex['properties'] if 'properties' in ex else []:
+					add_if_not_exists(properties, propertie)
+						
+				for interface in ex['interfaces'] if 'interfaces' in ex else []:
+					if interface not in interfaces:
+						interfaces.append(interface)
+						
+				for parent in ex['parents'] if 'parents' in ex else []:
+					if parent not in parents:
+						parents.append(parent)
+						
+			model['methods'] = methods
+			model['properties'] = properties
+			model['interfaces'] = interfaces
+			model['parents'] = parents
+			model['tags'] = tags
+
+
+def add_model_method(model, method, prepend=False):
+	if 'methods' not in model:
+		model['methods'] = [method]
+	else:
+		if prepend:
+			model['methods'].insert(0, method)
+		else:
+			model['methods'].append(method)
+			
+def add_method_tag(method, tag, prepend=False):
+	if 'tags' not in method:
+		method['tags'] = [tag]
+	else:
+		if prepend:
+			method['tags'].insert(0, tag)
+		else:
+			method['tags'].append(tag)
+
+def preporcess_constructors(model_env):
+	print "== processing constructors =="
+	# Gather model type usage
+	for name in model_env:
+		model = model_env[name]
+		
+		is_abstract = False
+		default_contructor = True
+		default_destructor = True
+			
+		if 'methods' in model:
+			for method in model['methods']:
+				if method['name'] == name:
+					default_contructor = False
+					
+				if 'tags' in method:
+					if 'abstract' in method['tags']:
+						is_abstract = True
+		
+		# Add default desctructor
+		if default_destructor:
+			destructor = {
+				'name' : '~' + name,
+				'tags' : ['destructor'],
+				'brief': "Default desctructor"
+			}
+			if is_abstract:
+				destructor['tags'].append('virtual')
+			
+			add_model_method(model, destructor, prepend=True)
+		
+		# Add default constructor
+		if default_contructor:
+			constructor = {
+				'name' : name,
+				'tags' : ['constructor'],
+				'brief': "Default constructor"
+			}
+			add_model_method(model, constructor, prepend=True)
+
+def preprocess_encapsulation(model_env):
+	print "== processing encapsulation =="
+	for name in model_env:
+		model = model_env[name]
+		for propertie in model['properties'] if 'properties' in model else []:
+			p_name = propertie['name']
+			p_type = propertie['type']
+			
+			tags = []
+			if 'tags' in propertie:
+				tags = propertie['tags']
+				
+			if 'protected' in tags:
+				add_method_tag(model, 'has_protected')
+			
+			if "private" not in tags:
+				if "no_read" not in tags:
+					getter_name = cpp_camel_name_filter(p_name)
+					getter = {
+						'brief': "m_{0} set function".format(p_name),
+						'name' : getter_name,
+						'return': cpp_to_ref_filter(p_type),
+						'template': 'cpp/property_getter.impl.template',
+						'meta': {
+							'property': {'name': p_name}
+						},
+						'tags' : ['getter', 'return_const', 'const'],
+					}
+					add_model_method(model, getter)
+					propertie['getter'] = getter_name
+				
+				if "no_write" not in tags:
+					setter_name = "set"+cpp_camel_name_filter(p_name, True)
+					setter = {
+						'brief': "m_{0} get function".format(p_name),
+						'name' : setter_name,
+						'return': 'void',
+						'template': 'cpp/property_setter.impl.template',
+						'meta': {
+							'property': {'name': p_name}
+						},
+						'arguments': [{
+							'brief': "New m_{0} value".format(p_name),
+							'name': p_name,
+							'type': cpp_to_ref_filter(p_type),
+							'tags': ['const']
+						}],
+						'tags' : ['setter'],
+					}
+					add_model_method(model, setter)
+					propertie['setter'] = setter_name
+					
+			if "protected" not in tags and "public" not in tags:
+				if "private" not in tags:
+					tags.append("private")
+				
+			propertie['tags'] = tags
+
+def tags_contains_prefix(tags, tag_prefix):
+	for tag in tags:
+		if tag.startswith(tag_prefix):
+			return tag
+	return None
+	
+def preprocess_containers(model_env):
+	print "== processing containers =="
+	for name in model_env:
+		model = model_env[name]
+		for propertie in model['properties'] if 'properties' in model else []:
+			if 'contained' in propertie:
+				
+				print propertie
+				
+				p_name = propertie['name']
+				p_type = propertie['type']
+				p_container = propertie['contained']['container']
+				p_contained_type = propertie['contained']['type']
+				
+				tags = []
+				if 'tags' in propertie:
+					tags = propertie['tags']
+				
+				if 'container_add' in tags:
+					method_name = cpp_camel_name_filter('add_' + p_name + '_item')
+					print "Container[container_add]", method_name
+					method = {
+						'brief': "Add item to m_{0} conteinr".format(p_name),
+						'name' : method_name,
+						'return': 'void',
+						'template': 'cpp/container_add.impl.template',
+						'arguments': [{
+							'brief': "New m_{0} value".format(p_name),
+							'name': 'item',
+							'type': cpp_to_ref_filter(p_contained_type),
+							'tags': ['const']
+						}],
+						'tags' : ['container_add'],
+					}
+					add_model_method(model, method)
+					
+				if tags_contains_prefix(tags, 'container_new:'):
+					contained_property = tags_contains_prefix(tags, 'container_new:').split(':')[1].split(',')
+					method_name = cpp_camel_name_filter('add_' + p_name + '_item')
+					print "Container[container_add_by]", method_name
+					
+				if 'container_remove' in tags:
+					method_name = cpp_camel_name_filter('remove_' + p_name)
+					print "Container[container_remove]", method_name
+					
+				if tags_contains_prefix(tags, 'container_remove_by:'):
+					contained_property = tags_contains_prefix(tags, 'container_contains_by:').split(':')[1].split(',')
+					method_name = cpp_camel_name_filter('remove_' + p_name)
+					print "Container[container_remove_by]", method_name
+					
+				if 'container_contains' in tags:
+					method_name = cpp_camel_name_filter(p_name + '_contains')
+					print "Container[container_contains]", method_name
+					
+				if tags_contains_prefix(tags, 'container_search_by:'):
+					contained_property = tags_contains_prefix(tags, 'container_contains_by:').split(':')[1].split(',')
+					method_name = cpp_camel_name_filter(p_name + '_search_by' )
+					print "Container[container_search_by {0}]".format(contained_property), method_name
+					
+				if tags_contains_prefix(tags, 'container_contains_by:'):
+					
+					contained_property = tags_contains_prefix(tags, 'container_contains_by:').split(':')[1]
+					method_name = cpp_camel_name_filter(p_name + '_contains_' + contained_property)
+				
+					print "Container[container_contains_by {0}]".format(contained_property), method_name
 
 def planner(models, packages, typemap, builtin_types = {}, library_types = {}, custom_types = {}, cpp_ext='.cpp', hpp_ext='.h' ):
 	
@@ -103,10 +367,13 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 	
 	errors = []
 	
-	for model in models:
-		name = model['name']
-		print "++", name
-		model_env[name] = cpp_convert_types( model.copy(), typemap )
+	preprocess_types(models, model_env, typemap)
+	
+	preporcess_constructors(model_env)
+	
+	preprocess_encapsulation(model_env)
+	
+	preprocess_containers(model_env)
 	
 	# Gather model type usage
 	for name in model_env:
@@ -120,12 +387,6 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 			
 		if 'methods' in model:
 			for method in model['methods']:
-				if method['name'] == name:
-					default_contructor = False
-					
-				if 'return' not in method:
-					method['return'] = 'void'
-					
 				if 'tags' in method:
 					if 'abstract' in method['tags']:
 						is_abstract = True
@@ -169,33 +430,6 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 				if t not in model_types:
 					model_types.append(t)
 		
-		# Add default desctructor
-		if default_destructor:
-			destructor = {
-				'name' : '~' + name,
-				'tags' : ['destructor'],
-				'brief': "Default desctructor"
-			}
-			if is_abstract:
-				destructor['tags'].append('virtual')
-				
-			if 'methods' not in model:
-				model['methods'] = [destructor]
-			else:
-				model['methods'].insert(0, destructor)
-		
-		# Add default constructor
-		if default_contructor:
-			constructor = {
-				'name' : name,
-				'tags' : ['constructor'],
-				'brief': "Default constructor"
-			}
-			if 'methods' not in model:
-				model['methods'] = [constructor]
-			else:
-				model['methods'].insert(0, constructor)
-		
 		if 'methods' in model:
 			for method in model['methods']:
 				for argument in method['arguments'] if 'arguments' in method else []:
@@ -204,7 +438,17 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 						if t not in model_types:
 							model_types.append(t)
 							
-		model_uses[name] = model_types
+				if 'return' in method:
+					types = cpp_extract_types(method['return'])
+					for t in types:
+						if t not in model_types and t != 'void':
+							model_types.append(t)
+							
+		extra_deps = []
+		if 'extra_deps' in model:
+			extra_deps = model['extra_deps']
+		
+		model_uses[name] = model_types + extra_deps
 		model_inherits[name] = model_inherit
 	
 		has_package = False

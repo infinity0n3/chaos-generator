@@ -22,7 +22,7 @@ fromjson_map = {
 	"qint64" : "{0}toInt()",
 }
 
-def qt_to_jsonvalue(var, var_type='', prefix='', suffix=''):
+def qt_to_jsonvalue(var, var_type='', prefix='', suffix='', serializer=''):
 	
 	if isinstance(var, dict):
 		if "name" in var and "type" in var:
@@ -39,7 +39,7 @@ def qt_to_jsonvalue(var, var_type='', prefix='', suffix=''):
 		return tojson_map[var_type].format(var_name)
 	else:
 		#~ return "/* !!! Direct conversion of type '{0}' to QJsonValue is not supported !!! */".format(var_type)
-		return cpp_attr_filter(var_name, var_type, "toJSONObject()")
+		return cpp_attr_filter(var_name, var_type, "toJSONObject({0})".format(serializer))
 	
 def qt_from_jsonvalue(var, json_obj_name):
 	#print ">> qt_from_jsonvalue", var, json_obj_name

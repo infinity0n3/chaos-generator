@@ -14,7 +14,7 @@
 		QString {{ iter }}_ref = sr.toRef( (quintptr*){{ iter }} );
 		{{ arr }}.append( QJsonValue({{ iter }}_ref) );
 		{%- else %}
-		QJsonObject {{ iter }}_obj = {{ iter | qt_to_jsonvalue(property.contained.type) }};
+		QJsonObject {{ iter }}_obj = {{ iter | qt_to_jsonvalue(property.contained.type, serializer="sr") }};
 		{{ arr }}.append( {{ iter }}_obj );
 		{%- endif %}
 	}
@@ -23,9 +23,9 @@
 		{%- if "ref_store" in property.tags %}
 	QString {{ property.name }}_ref;
 	{{ property.name }}_ref = sr.toRef( (quintptr*){{ prvar }} );
-	obj["{{ property.name }}"] = {{ property.name | qt_to_jsonvalue("QString",suffix="_ref") }};
+	obj["{{ property.name }}"] = {{ property.name | qt_to_jsonvalue("QString",suffix="_ref", serializer="sr") }};
 		{%- else %}
-	obj["{{ property.name }}"] = {{ property | qt_to_jsonvalue(prefix="m_") }};
+	obj["{{ property.name }}"] = {{ property | qt_to_jsonvalue(prefix="m_", serializer="sr") }};
 		{%- endif %}
 		
 	{%- endif %}{# "iterrable" #}

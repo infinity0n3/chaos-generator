@@ -42,7 +42,10 @@ typemap = {
 		"jsonvalue" : "QJsonValue",
 		# UndoStack
 		"undocommand" : "QUndoCommand",
-		"undostack" : "QUndoStack"
+		"undostack" : "QUndoStack",
+		# Other
+		"variant" : "QVariant",
+		"file"    : "QFile"
 	}
 	
 qt_builtin_types = {
@@ -60,7 +63,8 @@ def load_from_includes(include_path):
 				if filename[0] == 'Q':
 					types[filename] = ['<'+filename+'>']
 			break
-			
+	
+	
 	return types
 
 def extend_templating_environment(templateEnv):

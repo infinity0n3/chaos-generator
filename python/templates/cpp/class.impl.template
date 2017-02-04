@@ -1,38 +1,17 @@
 /*** {{ class.name }} class implementation ***/
 
-/* Property access functions */
-{%- block property_read_write %}
-{% for property in class.properties %}
-{%- if "private" not in property.tags %}
-{{ property.type }}{% if "byref" in property.tags %}*{% endif %} {{class.name}}::{{ property.name | cpp_camel_name }}() const
-{
-{% filter cpp_section("user_code", property.name, class.name, "custom_read" in property.tags) %}
-	return m_{{ property.name }};
-{%- endfilter %}
-}
-{%- if "readonly" not in property.tags %}
-
-void {{class.name}}::set{{ property.name | cpp_camel_name(True) }}({{ property.type }} _{{ property.name }})
-{
-{% filter cpp_section("user_code", property.name, class.name, "custom_write" in property.tags) %}
-	m_{{ property.name | cpp_camel_name }} = _{{ property.name }};
-{%- endfilter %}
-}
-{%- endif %}{# "readonly" #}
-{%- endif %}{# "private" #}
-{% endfor %}
-{%- endblock %}
-
 {%- block methods %}
 {%- for method in class.methods %}
 {%- if "abstract" not in method.tags %}
 {% filter cpp_blockcomment %}
 {%- include "doxygen/method.template" %}
 {%- endfilter %}
-{% if "constructor" not in method.tags and "destructor" not in method.tags %}{{ method.return }} {% endif %}{{class.name}}::{{ method.name  }}({{method.arguments | cpp_arguments}})
+{% if "constructor" not in method.tags and "destructor" not in method.tags %}{% if "return_const" in method.tags %}const {% endif %}{{ method.return }} {% endif %}{{class.name}}::{{ method.name  }}({{method.arguments | cpp_arguments}}){% if "const" in method.tags %} const{% endif %}
 {
 {%- if method.template %}
+{% filter cpp_section("user_code", method.name, class.name, "custom" in method.tags, indent="	") %}
 {% include method.template %}
+{%- endfilter %}{# cpp_section "user_code"... #}
 {%- else %}
 	{%- if "constructor" in method.tags %}
 {% filter cpp_section("user_code", method.name, class.name, indent="	") %}

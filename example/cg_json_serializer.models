@@ -2,6 +2,7 @@
 	"models": [{
 		"name": "JSONSerializable",
 		"package": "json_serializable",
+		"extra_deps": ["jsonvalue", "jsonarray"],
 		"properties": [],
 		"methods": [{
 			"brief": "Stores local object properties to JSON object",
@@ -26,7 +27,7 @@
 			}, {
 				"brief": "Deserializer object",
 				"name": "ds",
-				"type": "Deserializer*"
+				"type": "Deserializer&"
 			}],
 			"tags": ["abstract"]
 		}]

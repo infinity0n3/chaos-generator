@@ -1,0 +1,31 @@
+{
+	"models":[{
+		"name": "Stylable",
+		"properties": [{
+			"brief": "Style type name, mapped to class name",
+			"name": "style_type_name",
+			"type": "string"
+		}, {
+			"brief": "Style name",
+			"name": "style_name",
+			"type": "string"
+		}, {
+			"brief": "Style class list",
+			"name": "style_class",
+			"type": "vector<string>",
+			"tags": ["container_add", "container_remove", "container_contains"]
+		}, {
+			"brief": "Style pseudo class (active, hover...)",
+			"name": "style_pseudo_class",
+			"type": "string"
+		}],
+		"methods": [{
+			"name": "getStyleProperty",
+			"return": "variant",
+			"arguments": [{
+				"name": "property_name",
+				"type": "string"
+			}]
+		}]
+	}]
+}

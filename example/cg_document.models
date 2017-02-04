@@ -2,28 +2,34 @@
 	"models": [
 		{
 			"name": "Document",
+			"extra_deps": ["jsondocument", "file"],
 			"properties":[{
 				"name": "undostack",
 				"type": "undostack*",
-				"tags": ["owns", "readonly"]
+				"tags": ["no_write"]
 			},{
-				"name": "filename",
-				"type": "string"
+				"name": "file_name",
+				"type": "string",
+				"tags": ["protected"]
 			}],
 			"methods":[{
 				"name": "saveToFile",
 				"return": "bool",
+				"template": "document_save_to_json.impl.template",
 				"arguments": [{
-					"name": "filename",
-					"type": "string"
+					"name": "_filename",
+					"type": "string&",
+					"tags": ["const"]
 				}],
 				"tags": ["abstract"]
 			},{
 				"name": "loadFromFile",
 				"return": "bool",
+				"template": "document_load_from_json.impl.template",
 				"arguments": [{
-					"name": "filename",
-					"type": "string"
+					"name": "_filename",
+					"type": "string&",
+					"tags": ["const"]
 				}],
 				"tags": ["abstract"]
 			}]

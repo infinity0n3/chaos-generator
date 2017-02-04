@@ -1,0 +1,1 @@
+	m_{{ method.meta.property.name }} = {{ method.meta.property.name }};

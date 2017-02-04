@@ -4,19 +4,17 @@
 		"properties": [{
 			"brief": "Link lable",
 			"name": "label",
-			"type": "string",
-			"container": "1",
-			"tags": ["encapsulate", "owned"]
+			"type": "string"
 		}, {
 			"brief": "Link source object",
 			"name": "link_source",
 			"type": "Linkable*",
-			"tags": ["encapsulate", "foreign"]
+			"tags": ["foreign"]
 		}, {
 			"brief": "Link target object",
 			"name": "link_target",
 			"type": "Linkable*",
-			"tags": ["encapsulate", "foreign"]
+			"tags": ["foreign"]
 		}],
 		"methods": []
 	}, {
@@ -29,15 +27,19 @@
 			"brief": "Link flags required to link to this object",
 			"name": "link_accepts",
 			"type": "unsigned"
+		}, {
+			"name": "type",
+			"type": "string"
 		}],
 		"methods": [{
 			"brief": "Check if linkable object accepts provided flags",
 			"name": "canAccept",
 			"return": "bool",
 			"arguments": [{
-				"brief": "Flags to be chacked for acceptance",
-				"name": "flags",
-				"type": "unsigned"
+				"brief": "Check if this linkable object can accpept the other object",
+				"name": "link",
+				"type": "Linkable*",
+				"tags": ["const"]
 			}],
 			"tags": ["virtual"]
 		}]
