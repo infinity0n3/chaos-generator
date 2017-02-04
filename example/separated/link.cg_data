@@ -1,0 +1,28 @@
+{
+	"data":[{
+		"name": "Link",
+		"properties": [{
+			"name": "label",
+			"type": "string",
+			"container": "1",
+			"tags": ["encapsulate", "owned"]
+		}, {
+			"name": "source",
+			"type": "Linkable",
+			"tags": ["encapsulate", "foreign"]
+		}, {
+			"name": "target",
+			"type": "Linkable",
+			"tags": ["encapsulate", "foreign"]
+		}]
+	}, {
+		"name": "Linkable",
+		"properties": [{
+			"name": "flags",
+			"type": "unsigned"
+		}, {
+			"name": "accepts",
+			"type": "unsigned"
+		}]
+	}]
+}

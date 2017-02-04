@@ -1,0 +1,26 @@
+{
+	"commands": [
+		{
+			"name" : "AddBlock",
+			"package" : "document_commands",
+			"arguments" : [],
+			"properties": []
+		},
+		{
+			"name" : "RemoveBlock",
+			"package" : "document_commands",
+			"arguments": [],
+			"properties": []
+		},
+		{
+			"name" : "RemoveBlock",
+			"package" : "document_commands",
+			"arguments" : [],
+			"properties": []
+		}
+	],
+	"packages" : {
+		"document_commands": []
+	},
+	"models": []
+}

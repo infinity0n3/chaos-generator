@@ -1,0 +1,16 @@
+{
+	"interfaces":[{
+		"name": "Linkable",
+		"methods": [{
+			"brief": "Check if linkable object accepts provided flags",
+			"name": "canAccept",
+			"return": "bool",
+			"arguments": [{
+				"brief": "Flags to be chacked for acceptance",
+				"name": "flags",
+				"type": "unsigned"
+			}],
+			"tags": ["virtual"]
+		}]
+	}]
+}

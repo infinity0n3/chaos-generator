@@ -23,7 +23,6 @@ fromjson_map = {
 }
 
 def qt_to_jsonvalue(var, var_type='', prefix='', suffix=''):
-	print ">> qt_to_jsonvalue", var
 	
 	if isinstance(var, dict):
 		if "name" in var and "type" in var:
@@ -43,7 +42,7 @@ def qt_to_jsonvalue(var, var_type='', prefix='', suffix=''):
 		return cpp_attr_filter(var_name, var_type, "toJSONObject()")
 	
 def qt_from_jsonvalue(var, json_obj_name):
-	print ">> qt_from_jsonvalue", var, json_obj_name
+	#print ">> qt_from_jsonvalue", var, json_obj_name
 	
 	return ""
 

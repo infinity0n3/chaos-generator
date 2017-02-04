@@ -1,0 +1,12 @@
+{
+	"project": {
+		"project": "ChaosGenerator",
+		"organization" : "Colibri-Embedded",
+		"year": "2017",
+		"authors" : [
+			{"name":"Daniel Kesler", "email":"kesler.daniel@gmail.com"}
+		],
+		"language" : "cpp",
+		"framework" : "qt5"
+	}
+}

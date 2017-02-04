@@ -45,11 +45,11 @@ public:
 	/* Property access functions */
 	{% for property in class.properties %}
 	{%- if "private" not in property.tags %}
-	// m_{{ property.name }} read function
-	{{ property.type }}{% if "byref" in property.tags %}*{% endif %} {{ property.name }}() const;
+	// m_{{ property.name | cpp_camel_name }} read function
+	{{ property.type }}{% if "byref" in property.tags %}*{% endif %} {{ property.name | cpp_camel_name }}() const;
 		{%- if "readonly" not in property.tags %}
-	// m_{{ property.name }} write function
-	void set{{ property.name | capitalize }}({{ property.type }} _{{ property.name }});
+	// m_{{ property.name | cpp_camel_name }} write function
+	void set{{ property.name | cpp_camel_name(True) }}({{ property.type }} _{{ property.name }});
 		{%- endif %}
 	{%- endif %}
 	{%- endfor %}

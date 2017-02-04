@@ -1,0 +1,46 @@
+{
+	"models":[{
+		"name": "Link",
+		"properties": [{
+			"brief": "Link lable",
+			"name": "label",
+			"type": "string",
+			"container": "1",
+			"tags": ["encapsulate", "owned"]
+		}, {
+			"brief": "Link source object",
+			"name": "link_source",
+			"type": "Linkable*",
+			"tags": ["encapsulate", "foreign"]
+		}, {
+			"brief": "Link target object",
+			"name": "link_target",
+			"type": "Linkable*",
+			"tags": ["encapsulate", "foreign"]
+		}],
+		"methods": []
+	}, {
+		"name": "Linkable",
+		"properties": [{
+			"brief": "Link object flags",
+			"name": "link_flags",
+			"type": "unsigned"
+		}, {
+			"brief": "Link flags required to link to this object",
+			"name": "link_accepts",
+			"type": "unsigned"
+		}],
+		"methods": [{
+			"brief": "Check if linkable object accepts provided flags",
+			"name": "canAccept",
+			"return": "bool",
+			"arguments": [{
+				"brief": "Flags to be chacked for acceptance",
+				"name": "flags",
+				"type": "unsigned"
+			}],
+			"tags": ["virtual"]
+		}]
+		
+	}]
+}

@@ -32,11 +32,12 @@ import gettext
 tr = gettext.translation('chaos-generator', 'locale', fallback=True)
 _ = tr.ugettext
 
-def cg_run(files, includes, templates, language, framework, output_path):
+def cg_run(files, includes, templates, language, framework, output_path, suggest):
 	"""
 	
 	"""
 	import language.cpp  as cpp
+	import language.suggest as lang_suggest
 	import framework.qt5 as qt5_fw
 	
 	result = {
@@ -93,6 +94,8 @@ def cg_run(files, includes, templates, language, framework, output_path):
 	# Initialize variables
 	models = []
 	views = []
+	data = []
+	interfaces = []
 	packages = {}
 	project = {}
 	
@@ -101,32 +104,41 @@ def cg_run(files, includes, templates, language, framework, output_path):
 		with open(fn) as f:
 			print ">>", fn
 			content = json.loads( f.read() )
+			if 'data' in content:
+				data.extend( content['data'] )
 			if 'models' in content:
 				models.extend( content['models'] )
+			if 'interfaces' in content:
+				interfaces.extend( content['interfaces'] )
 			if 'project' in content:
 				project.update( content['project'] )
 			if 'packages' in content:
 				packages.update( content['packages'] )
 	
-	# Create generation plan
-	units, planner_error = lang.planner(models, packages, typemap, lang.builtin_types, fwk_types)
-	
-	if planner_error:
-		result['errors'].extend(planner_error)
-		return result
-	
-	units.extend( fwk.create_extra_units(units, output_path) )
-	
-	# Generate files
-	lang.create_dir(output_path)
-	for unit in units:
-		unit_env = unit['env'].copy()
-		unit_env.update(project)
-		unit_template = templating_env.get_template(unit['template'])
-		unit_filename = lang.build_path(output_path, unit['filename'])
+	if suggest:
+		lang_suggest.data2model(data)
+		#lang_suggest.interface2model(interfaces)
 		
-		# Generate file from template
-		lang.create_file_from_template(unit_template, unit_filename, unit_env, overwrite=True);
+	if not suggest:	
+		# Create generation plan
+		units, planner_error = lang.planner(models, packages, typemap, lang.builtin_types, fwk_types)
+		
+		if planner_error:
+			result['errors'].extend(planner_error)
+			return result
+		
+		units.extend( fwk.create_extra_units(units, output_path) )
+		
+		# Generate files
+		lang.create_dir(output_path)
+		for unit in units:
+			unit_env = unit['env'].copy()
+			unit_env.update(project)
+			unit_template = templating_env.get_template(unit['template'])
+			unit_filename = lang.build_path(output_path, unit['filename'])
+			
+			# Generate file from template
+			lang.create_file_from_template(unit_template, unit_filename, unit_env, overwrite=True);
 	
 	return result
 
@@ -138,6 +150,7 @@ def main():
 	parser.add_argument("-I", dest='include', action='append', help=_("Include path") )
 	parser.add_argument("-T", dest='templates', action='append', help=_("Template search path") )
 	parser.add_argument("-o", dest='output', help=_("Output path.") )
+	parser.add_argument("-s", dest='suggest', action='store_true', help=_("Only generate suggestions.") )
 	
 	# GET ARGUMENTS
 	args = parser.parse_args()
@@ -151,11 +164,12 @@ def main():
 			
 	language	= args.language
 	framework	= args.framework
-	output_path	= args.output or ""
+	output_path	= args.output or "./"
 	templates	= args.templates or []
+	suggest		= args.suggest
 	
 	# Run chaos generator
-	result = cg_run(files, includes, templates, language, framework, output_path)
+	result = cg_run(files, includes, templates, language, framework, output_path, suggest)
 	
 	for e in result['errors']:
 		print e

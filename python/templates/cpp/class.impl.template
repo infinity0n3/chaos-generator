@@ -4,7 +4,7 @@
 {%- block property_read_write %}
 {% for property in class.properties %}
 {%- if "private" not in property.tags %}
-{{ property.type }}{% if "byref" in property.tags %}*{% endif %} {{class.name}}::{{ property.name }}() const
+{{ property.type }}{% if "byref" in property.tags %}*{% endif %} {{class.name}}::{{ property.name | cpp_camel_name }}() const
 {
 {% filter cpp_section("user_code", property.name, class.name, "custom_read" in property.tags) %}
 	return m_{{ property.name }};
@@ -12,10 +12,10 @@
 }
 {%- if "readonly" not in property.tags %}
 
-void {{class.name}}::set{{ property.name | capitalize }}({{ property.type }} _{{ property.name }})
+void {{class.name}}::set{{ property.name | cpp_camel_name(True) }}({{ property.type }} _{{ property.name }})
 {
 {% filter cpp_section("user_code", property.name, class.name, "custom_write" in property.tags) %}
-	m_{{ property.name }} = _{{ property.name }};
+	m_{{ property.name | cpp_camel_name }} = _{{ property.name }};
 {%- endfilter %}
 }
 {%- endif %}{# "readonly" #}

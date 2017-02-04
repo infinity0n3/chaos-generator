@@ -1,0 +1,34 @@
+{
+	"models": [{
+		"name": "JSONSerializable",
+		"package": "json_serializable",
+		"properties": [],
+		"methods": [{
+			"brief": "Stores local object properties to JSON object",
+			"name": "toJSONObject",
+			"return": "jsonobject",
+			"template": "store_to_json_object.impl.template",
+			"arguments": [{
+				"brief": "Serializer object",
+				"name": "sr",
+				"type": "Serializer&"
+			}],
+			"tags": ["abstract"]
+		}, {
+			"brief": "Loads local object properties from JSON object",
+			"name": "fromJSONObject",
+			"return": "bool",
+			"template": "load_from_json_object.impl.template",
+			"arguments": [{
+				"brief": "JSON object",
+				"name": "json",
+				"type": "jsonobject&"
+			}, {
+				"brief": "Deserializer object",
+				"name": "ds",
+				"type": "Deserializer*"
+			}],
+			"tags": ["abstract"]
+		}]
+	}]
+}

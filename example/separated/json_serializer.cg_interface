@@ -1,0 +1,29 @@
+{
+	"interfaces": [{
+		"name": "JSONSerializable",
+		"package": "json_serializable",
+		"properties": [],
+		"methods": [{
+			"name": "toJSONObject",
+			"return": "jsonobject",
+			"template": "store_to_json_object.impl.template",
+			"arguments": [{
+				"name": "sr",
+				"type": "Serializer&"
+			}],
+			"tags": ["abstract"]
+		}, {
+			"name": "fromJSONObject",
+			"return": "bool",
+			"template": "load_from_json_object.impl.template",
+			"arguments": [{
+				"name": "json",
+				"type": "jsonobject&"
+			}, {
+				"name": "ds",
+				"type": "Deserializer&"
+			}],
+			"tags": ["abstract"]
+		}]
+	}]
+}

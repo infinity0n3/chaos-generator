@@ -2,9 +2,32 @@
 	auto obj = QJsonObject();
 {%- for property in class.properties %}
 {%- if "dont_store" not in property.tags %}
+	{%- set prvar = "m_" + property.name %}
+	// Store {{ prvar }} to json
 	{%- if property.type_class == "iterrable" %}
+	{%- set iter = property.name + "_item" %}{%- set arr = property.name + "_array" %}
+	auto {{ arr }} = QJsonArray();
+	{{ property.contained.type | cpp_declare_var(iter) }};
+	foreach({{ iter }}, {{ prvar }})
+	{
+		{%- if "ref_store" in property.tags %}
+		QString {{ iter }}_ref = sr.toRef( (quintptr*){{ iter }} );
+		{{ arr }}.append( QJsonValue({{ iter }}_ref) );
+		{%- else %}
+		QJsonObject {{ iter }}_obj = {{ iter | qt_to_jsonvalue(property.contained.type) }};
+		{{ arr }}.append( {{ iter }}_obj );
+		{%- endif %}
+	}
+	obj["{{ property.name }}"] = {{ arr }};
 	{%- else %}{# "iterrable" #}
-	// {{ property.name }}
+		{%- if "ref_store" in property.tags %}
+	QString {{ property.name }}_ref;
+	{{ property.name }}_ref = sr.toRef( (quintptr*){{ prvar }} );
+	obj["{{ property.name }}"] = {{ property.name | qt_to_jsonvalue("QString",suffix="_ref") }};
+		{%- else %}
+	obj["{{ property.name }}"] = {{ property | qt_to_jsonvalue(prefix="m_") }};
+		{%- endif %}
+		
 	{%- endif %}{# "iterrable" #}
 {%- endif %}
 {%- endfor %}

@@ -68,7 +68,6 @@ def cpp_convert_types(model, typemap):
 		
 		propertie['type'] = cpp_type_filter(raw_type, typemap)
 		propertie['type_class'] = type_class
-		print propertie
 	
 	for method in model['methods'] if 'methods' in model else []:
 		
@@ -92,11 +91,6 @@ def cpp_convert_types(model, typemap):
 				
 			argument['type'] = cpp_type_filter(raw_type, typemap)
 			argument['type_class'] = type_class
-	
-	
-	print 
-	print model
-	print "---"
 	
 	return model
 
@@ -133,7 +127,6 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 					method['return'] = 'void'
 					
 				if 'tags' in method:
-					print model['name'], method['name'], method['tags']
 					if 'abstract' in method['tags']:
 						is_abstract = True
 		

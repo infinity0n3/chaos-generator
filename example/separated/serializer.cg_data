@@ -1,0 +1,27 @@
+{
+	"data" : [{
+		"name": "Serializer",
+		"properties": [{
+			"name": "table",
+			"brief": "Object to reference hash table",
+			"type": ["pointer*", "string"],
+			"container": "map",
+			"tags": ["private", "owned"]
+		}, {
+			"name": "ref_table",
+			"brief": "Object reference counter",
+			"type": ["string", "unsigned"],
+			"container": "map",
+			"tags": ["private", "owned"]
+		}]
+	}, {
+		"name": "Deserializer",
+		"properties": [{
+			"name": "table",
+			"brief": "Reference to object hash table",
+			"type": ["string", "pointer*"],
+			"container": "map",
+			"tags": ["private", "foreign"]
+		}]
+	}]
+}

@@ -8,6 +8,22 @@ type_parser = re.compile("(?P<type>\\w+)(?P<ptr>\*)?(?P<ref>\&)?(\[(?P<width>\d+
 def cpp_by_value_filter(var_name, var_type):
 	pass
 
+def cpp_camel_name_filter(name, capitalize_first=False):
+	tags = re.split("[ _-]", name)
+	
+	result = ''
+	first=True
+	for t in tags:
+		tt = t.capitalize()
+		if first and not capitalize_first:
+			tt = t
+			
+		first=False
+			
+		result += tt
+	
+	return result
+
 def cpp_attr_filter(var_name, var_type, attr, prefix='', suffix=''):
 	attr_access = '->' if var_type[-1] == '*' else '.'
 	return prefix+var_name+suffix + attr_access + attr
