@@ -1,10 +1,16 @@
 	// qt load_from_json implementation
-{%- for property in class.properties %}
+	
+	if(json.contains("ref"))
+	{
+		auto ref = json["ref"].toString();
+		ds.storeObject( (quintptr*)this, ref );
+	}
+{% for property in class.properties %}
 {%- if "dont_store" not in property.tags %}
-	// if( json.contains("{{ property.name }}") )
-	// {
-	// 		m_{{ property.name }} = {{ property | qt_from_jsonvalue("json") }};
-	// }
+	if( json.contains("{{ property.name }}") )
+	{
+		m_{{ property.name }} = {{ property | qt_from_jsonvalue("json", deserializer="ds") }};
+	}
 {%- endif %}
-{%- endfor %}
+{% endfor %}
 	return false;
