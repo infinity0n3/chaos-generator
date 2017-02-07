@@ -34,7 +34,7 @@
 			"name": "table",
 			"brief": "Reference to object hash table",
 			"type": "hash<string,pointer*>",
-			"tags": ["private"]
+			"tags": ["no_read", "no_write"]
 		}],
 		"methods": [{
 			"brief": "Return object pointer designated to the provided reference",

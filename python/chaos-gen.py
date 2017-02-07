@@ -94,6 +94,7 @@ def cg_run(files, includes, templates, language, framework, output_path, suggest
 	
 	# Initialize variables
 	models = []
+	enums = []
 	views = []
 	data = []
 	interfaces = []
@@ -109,6 +110,8 @@ def cg_run(files, includes, templates, language, framework, output_path, suggest
 				data.extend( content['data'] )
 			if 'models' in content:
 				models.extend( content['models'] )
+			if 'enums' in content:
+				enums.extend( content['enums'] )
 			if 'interfaces' in content:
 				interfaces.extend( content['interfaces'] )
 			if 'project' in content:
@@ -122,7 +125,7 @@ def cg_run(files, includes, templates, language, framework, output_path, suggest
 		
 	if not suggest:	
 		# Create generation plan
-		units, planner_error = lang.planner(models, packages, typemap, lang.builtin_types, fwk_types)
+		units, planner_error = lang.planner(models, enums, packages, typemap, lang.builtin_types, fwk_types)
 		
 		if planner_error:
 			result['errors'].extend(planner_error)

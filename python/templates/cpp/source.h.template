@@ -9,6 +9,14 @@
 {% for include in includes %}
 #include {{ include }}
 {%- endfor %}
+{# Auotgenerated enum declaration #}
+{%- for enum in enums %}
+{%- if "flags" in enum.tags %}
+{% include "cpp/flags.def.template" %}
+{%- else %}
+{% include "cpp/enum.def.template" %}
+{%- endif %}
+{%- endfor -%}
 {%- for class in classes %}
 {% include "cpp/class.def.template" %}
 {%endfor %}

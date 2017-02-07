@@ -1,0 +1,22 @@
+{{class.name}}::{{ method.name }}({{method.arguments | cpp_arguments}})
+{
+{%- if method.template %}
+	{% filter cpp_section("user_code", method.name, class.name, "custom" in method.tags, indent="	") %}
+	{% include method.template %}
+	{%- endfilter %}{# cpp_section "user_code"... #}
+{%- else %}
+{% filter cpp_section("user_code", method.name, class.name, "custom" in method.tags, indent="	") %}
+	{%- for property in class.properties %}
+	{%- if "foreign" not in property.tags %}
+		{%- if property.type_class == "iterrable" %}
+	// delete array m_{{ property.name }}; // owned
+		{%- else %}
+	{%- if property.type is cpp_is_ptr %}
+	delete m_{{ property.name }}; // owned
+	{%- endif %}
+		{%- endif %}
+	{%- endif %}
+	{%- endfor %}
+{%- endfilter %}{# cpp_section "user_code"... #}
+{%- endif %}{# method.template... #}
+}

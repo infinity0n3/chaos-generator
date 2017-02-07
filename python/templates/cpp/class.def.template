@@ -19,7 +19,7 @@
 {%- for fwd in class.forwards %}
 class {{ fwd }};
 {% endfor %}
-class {{ class.name }}
+{% if "is_enum" in class.tags %}enum {% endif %}class {{ class.name }}
 {%- if class.parents %}
 	: {{ class.parents | cpp_list }}
 {%- endif %}

@@ -14,16 +14,18 @@
 		auto items = json["{{ property.name }}"].toArray();
 		foreach(item, items)
 		{
-			//auto new_item_obj = 
+			auto new_item_obj = {{ property.contained.type | cpp_new_value }};
+			{%- set item_var ={"name":"new_item_obj", "type": property.contained.type } %}
 			QJsonObject obj = item.toObject();
-			
+			{{ item_var | qt_from_jsonvalue("obj", deserializer="ds") }};
+			m_{{ property.name }}.append(new_item_obj);
 		}
 	{%- else %}
 		{%- if "ref_store" in property.tags %}
 		auto ref = json["{{ property.name }}"].toString();
 		m_{{ property.name }} = ({{ property.type }})ds.fromRef(ref);
 		{%- else %}
-		m_{{ property.name }} = {{ property | qt_from_jsonvalue("json", deserializer="ds") }};
+		{{ property | qt_from_jsonvalue("json", deserializer="ds", prefix="m_") }};
 		{%- endif %}
 	{%- endif %}
 	}

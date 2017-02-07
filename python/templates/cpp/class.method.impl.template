@@ -1,0 +1,17 @@
+{% if "return_const" in method.tags %}const {% endif %}{{ method.return }} {{class.name}}::{{ method.name  }}({{method.arguments | cpp_arguments}}){% if "const" in method.tags %} const{% endif %}
+{
+{%- if method.template %}
+{% filter cpp_section("user_code", method.name, class.name, "custom" in method.tags, indent="	") %}
+{% include method.template %}
+{%- endfilter %}{# cpp_section "user_code"... #}
+{%- else %}{# mmethod.template #}
+{% filter cpp_section("user_code", method.name, class.name, indent="	") %}
+	{%- if method.return and method.return != "void" %}
+	{{ method.return }} result;
+	{%- endif %}
+	{%- if method.return and method.return != "void" %}
+	return result;
+	{%- endif %}
+{%- endfilter %}{# cpp_section "user_code"... #}
+{%- endif %}{# method.template... #}
+}

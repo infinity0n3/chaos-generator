@@ -1,2 +1,31 @@
 	// load document from json
+	
+	if(_filename == "")
+		return false;
+
+	setFileName(_filename);
+	m_undo_stack->clear();
+
+	QFile file(_filename);
+	file.open(QIODevice::ReadOnly);
+	auto data = file.readAll();
+	file.close();
+	
+	auto doc = QJsonDocument().fromJson(data);
+	auto docobj = doc.object();
+	
+	auto ds = Deserializer();
+
+	if( docobj.contains("header") )
+	{
+		qDebug() << "header found";
+	}
+	
+	if( docobj.contains("content") )
+	{
+		qDebug() << "content found";
+		auto content = docobj["content"].toObject();
+		fromJSONObject(content, ds);
+	}
+	
 	return true;

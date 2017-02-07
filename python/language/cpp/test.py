@@ -3,7 +3,7 @@ import re
 from jinja2 import contextfilter
 
 def cpp_is_ptr_test(value):
-	return '*' in value
+	return value[-1] == '*'
 	
 def cpp_is_ref_test(value):
-	return '&' in value
+	return value[-1] == '&'

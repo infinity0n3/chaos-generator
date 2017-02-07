@@ -1,0 +1,36 @@
+// flags {{enum.name}}
+struct {{ enum.name }}
+{
+	typedef enum {
+		{%- for element in enum.elements %}
+		{{ element.name }}{% if element.value is defined %} = {{ element.value }}{% endif %}{% if "last" not in element.tags %},{% endif %}
+		{%- endfor %}
+	} cg_enum_type;
+	
+	cg_enum_type Value;
+	
+	IOType(cg_enum_type value) : Value(value) {}
+	IOType() : Value(NONE) {}
+
+	void operator=(cg_enum_type v) { Value = v; }
+	void operator|=(cg_enum_type v) { Value = (cg_enum_type)((unsigned)Value | (unsigned)v); }
+	void operator-=(cg_enum_type v) { Value = (cg_enum_type)((unsigned)Value & ~(unsigned)v); }
+	void operator+=(cg_enum_type v) { Value = (cg_enum_type)((unsigned)Value | (unsigned)v); }
+	cg_enum_type operator~() { return (cg_enum_type)(~(unsigned)Value); }
+	
+	friend cg_enum_type operator+(cg_enum_type x, cg_enum_type y)
+	{
+		return (cg_enum_type)((unsigned)x | (unsigned)y);
+	}
+	
+	friend cg_enum_type operator|(cg_enum_type x, cg_enum_type y)
+	{
+		return (cg_enum_type)((unsigned)x | (unsigned)y);
+	}
+
+	operator bool()
+	{
+		return Value != NONE;
+	}
+	
+};

@@ -1,13 +1,36 @@
 from language.cpp import typemap as cpp_typemap
+from language.cpp.test import cpp_is_ptr_test, cpp_is_ref_test
+
 import re
 from jinja2 import contextfilter
 
 container_parser = re.compile("((?P<container>\\w+)<)?(?P<type>(\\w|[,*&])+)>?(?P<ptr>\*)?(?P<ref>\&)?(\[(?P<width>\d+)\])?")
 type_parser = re.compile("(?P<type>\\w+)(?P<ptr>\*)?(?P<ref>\&)?(\[(?P<width>\d+)\])?")
 
-def cpp_by_value_filter(var_name, var_type):
-	pass
-
+def cpp_by_value_filter(var, var_type='', prefix='', suffix=''):
+	if isinstance(var, dict):
+		var_name = var['name']
+		var_type = var['type']
+	elif isinstance(var, basestring):
+		var_name = var
+	
+	if cpp_is_ptr_test(var_type):
+		return '*(' + prefix + var_name + suffix + ')'
+	else:
+		return prefix + var_name + suffix
+		
+def cpp_by_ptr_filter(var, var_type, prefix='', suffix=''):
+	if isinstance(var, dict):
+		var_name = var['name']
+		var_type = var['type']
+	elif isinstance(var, basestring):
+		var_name = var
+		
+	if cpp_is_ptr_test(var_type):
+		return prefix + var_name + suffix
+	else:
+		return '&(' + prefix + var_name + suffix + ')'
+		
 def cpp_to_ref_filter(var_type, const=False):
 	result = var_type
 	
@@ -179,7 +202,7 @@ def cpp_arguments_filter(arg_list, use_default=False):
 		if 'tags' in arg:
 			if 'const' in arg['tags']:
 				const = 'const '
-		result += const + prefix + arg['type'] + ' ' + arg['name']
+		result += prefix + const + arg['type'] + ' ' + arg['name']
 		if "default" in arg and use_default:
 			result += ' = ' + arg["default"]
 		if not prefix:
@@ -200,9 +223,37 @@ def cpp_list_filter(arg_list):
 			
 	return result
 
-def cpp_declare_var_filter(var_type, var_name):
-	return var_type + " " + var_name
+def cpp_declare_var_filter(var_type, var_name, init='', new=False):
+	
+	result = ""
+	
+	var_type_pure = var_type.replace('*', '').replace('&', '')
+	
+	if new:
+		if  cpp_is_ptr_test(var_type):
+			result = "{0} {1} = new {2}({3})".format(var_type, var_name, var_type_pure, init)
+		else:
+			result = "{0} {1} = {0}({2})".format(var_type, var_name, init)
+	else:
+		result = var_type + " " + var_name
+		if init:
+			result += " = " + init
 
+	return result
+	
+def cpp_new_value_filter(var_type, init=''):
+	is_ptr = cpp_is_ptr_test(var_type)
+	result = ""
+	
+	var_type = var_type.replace('*', '').replace('&', '')
+	
+	if is_ptr:
+		result = "new {0}({1})".format(var_type, init)
+	else:
+		result = "{0}({1})".format(var_type, init)
+		
+	return result
+	
 cpp_indent = re.compile("(?P<indent>\\s*)(?P<code>.*)")
 
 @contextfilter

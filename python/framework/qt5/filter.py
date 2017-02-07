@@ -45,6 +45,7 @@ def qt_from_jsonvalue(var, json_obj_name, prefix='', suffix='',  deserializer=''
 	
 	if isinstance(var, dict):
 		if "name" in var and "type" in var:
+			property_name = var['name']
 			var_name = prefix+var['name']+suffix
 			var_type = var['type']
 		else:
@@ -52,7 +53,7 @@ def qt_from_jsonvalue(var, json_obj_name, prefix='', suffix='',  deserializer=''
 			pass
 			
 	if var_type in tojson_map:
-		return fromjson_map[var_type].format(json_obj_name, var_name)
+		return var_name + ' = ' + fromjson_map[var_type].format(json_obj_name, property_name)
 	else:
 		#~ return "/* !!! Direct conversion of type '{0}' to QJsonValue is not supported !!! */".format(var_type)
 		return cpp_attr_filter(var_name, var_type, "fromJSONObject({0}, {1})".format(json_obj_name, deserializer))

@@ -13,7 +13,17 @@
 				"type": "vector<BlockLink*>",
 				"tags": ["no_write"]
 			}],
-			"methods": []
+			"methods": [{
+				"name": "addPyBlock",
+				"arguments": [{
+					"name": "name",
+					"type": "string"
+				}, {
+					"name": "function",
+					"type": "string"
+				}]
+			}],
+			"tags": ["serializable:json", "store_to_file"]
 		},
 		{
 			"name": "BlockLink",
@@ -31,17 +41,10 @@
 				"brief": "The name of the Block",
 				"tags" : ["custom_write"]
 			}, {
-				"brief": "Block input ports",
-				"name": "inputs",
-				"brief": "Inputs of the Block",
-				"type": "vector<BlockIO*>",
-                "tags": ["no_write", "container_contains_by:name"]
-			}, {
-				"brief": "Block output ports",
-				"name": "outputs",
-				"brief": "Outputs of the Block",
-				"type": "vector<BlockIO*>",
-                "tags": ["no_write"]
+				"brief": "Block ports",
+				"name": "ports",
+				"type": "vector<BlockPort*>",
+                "tags": ["no_write", "contains_by:name", "get_by:name"]
 			}],
 			"methods": [{
 				"brief": "Add an input port",
@@ -53,7 +56,7 @@
 					"name": "type",
 					"type": "string"
 				}],
-				"return" : "BlockIO*"
+				"return" : "BlockPort*"
 			}, {
 				"brief": "Add an output port",
 				"name" : "addOutput",
@@ -64,12 +67,12 @@
 					"name": "type",
 					"type": "string"
 				}],
-				"return" : "BlockIO*"
+				"return" : "BlockPort*"
 			}]
 		},
 		{
-			"name": "BlockIO",
-			"package": "block_io",
+			"name": "BlockPort",
+			"package": "block_port",
 			"interfaces" : ["JSONSerializable", "Linkable"],
 			"properties": [{
 				"brief": "IO name",
@@ -81,7 +84,7 @@
 				"tags": ["no_write", "foreign"]
 			}],
 			"methods": [{
-				"name":"BlockIO",
+				"name":"BlockPort",
 				"arguments":[{
 					"name":"name",
 					"type":"string"

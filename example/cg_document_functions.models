@@ -3,35 +3,48 @@
 		{
 			"name": "FunctionsDocument",
 			"package": "functions_document",
-			"interfaces": ["Document"],
+			"interfaces": ["Document", "JSONSerializable"],
 			"properties": [{
 				"name": "blocks",
 				"type": "vector<Block*>",
 				"tags": ["no_write"]
 			},{
-				"name": "connections",
-				"type": "vector<Link*>",
+				"name": "links",
+				"type": "vector<BlockLink*>",
 				"tags": ["no_write"]
 			}],
-			"methods": []
+			"methods": [{
+				"name": "addPyBlock",
+				"return": "Block*",
+				"arguments": [{
+					"name": "name",
+					"type": "string"
+				}, {
+					"name": "function",
+					"type": "string"
+				}]
+			}, {
+				"name": "connect",
+				"arguments": [{
+					"name": "source",
+					"type": "Linkable*"
+				}, {
+					"name": "target",
+					"type": "Linkable*"
+				}]
+			}],
+			"tags": ["serializable:json", "store_to_file"]
 		},
 		{
-			"name": "IOConnection",
-			"package": "io_connection",
+			"name": "BlockLink",
+			"package": "block_link",
 			"interfaces": ["JSONSerializable"],
-			"properties": [{
-				"name": "src",
-				"type": "BlockIO*",
-				"tags": ["foreign"]
-			},{
-				"name": "dst",
-				"type": "vector<BlockIO*>",
-				"tags": ["foreign"]
-			}],
-			"methods": []
+			"extends": ["Link"],
+			"tags": ["constructor:link_source,link_target"]
 		},
 		{
 			"name": "Block",
+			"tags": ["constructor:name,parent", "constructor:parent"],
 			"interfaces": ["JSONSerializable"],
 			"properties": [{
 				"brief": "Block name",
@@ -40,69 +53,41 @@
 				"brief": "The name of the Block",
 				"tags" : ["custom_write"]
 			}, {
-				"brief": "Block input ports",
-				"name": "inputs",
-				"brief": "Inputs of the Block",
-				"type": "vector<BlockIO*>",
-                "tags": ["no_write", "container_contains_by:name"]
+				"brief": "Block ports",
+				"name": "ports",
+				"type": "vector<BlockPort*>",
+				"tags": ["no_write", "contains_by:name", "get_by:name", "get_by:name,type", "add_item"]
 			}, {
-				"brief": "Block output ports",
-				"name": "outputs",
-				"brief": "Outputs of the Block",
-				"type": "vector<BlockIO*>",
-                "tags": ["no_write"]
+				"name": "parent",
+				"type": "FunctionsDocument*",
+				"default": "0",
+				"tags": ["foreign", "no_write"]
 			}],
-			"methods": [{
-				"brief": "Add an input port",
-				"name" : "addInput",
-				"arguments" : [{
-					"name": "name",
-					"type": "string"
-				}, {
-					"name": "type",
-					"type": "string"
-				}],
-				"return" : "BlockIO*"
-			}, {
-				"brief": "Add an output port",
-				"name" : "addOutput",
-				"arguments" : [{
-					"name": "name",
-					"type": "string"
-				}, {
-					"name": "type",
-					"type": "string"
-				}],
-				"return" : "BlockIO*"
-			}]
+			"methods": []
 		},
 		{
-			"name": "BlockIO",
-			"interfaces" : ["JSONSerializable"],
+			"name": "BlockPort",
+			"package": "block_port",
+			"interfaces" : ["JSONSerializable", "Linkable"],
 			"properties": [{
 				"brief": "IO name",
 				"name": "name",
-				"type": "string"
-			}, {
-				"brief": "IO type",
-				"name": "type",
-				"type": "string"
+				"type": "string",
+				"tags": ["protected"]
 			}, {
 				"name": "parent",
+				"default": "0",
 				"type": "Block*",
-				"tags": ["no_write", "foreign"]
+				"tags": ["no_write", "foreign", "protected"]
 			}],
-			"methods": [{
-				"name":"BlockIO",
-				"arguments":[{
-					"name":"name",
-					"type":"string"
-				},{
-					"name":"type",
-					"type":"string"
-				}],
-				"tags":["constructor"]
-			}]
+			"methods": [],
+			"tags": ["constructor:name,parent"]
+		}, {
+			"name": "BlockInPort",
+			"parents": ["BlockPort"],
+			"package": "block_port",
+			"methods": [],
+			"tags": ["constructor:name,parent"]
 		}
 	]
 }

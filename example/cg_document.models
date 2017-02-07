@@ -4,9 +4,9 @@
 			"name": "Document",
 			"extra_deps": ["jsondocument", "file"],
 			"properties":[{
-				"name": "undostack",
+				"name": "undo_stack",
 				"type": "undostack*",
-				"tags": ["no_write"]
+				"tags": ["no_write", "protected", "initialize"]
 			},{
 				"name": "file_name",
 				"type": "string",

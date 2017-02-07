@@ -1,0 +1,7 @@
+// enum {{enum.name}}
+enum class {{ enum.name }}
+{
+{%- for element in enum.elements %}
+	{{ element.name }}{% if element.value is defined %} = {{ element.value }}{% endif %}{% if "last" not in element.tags %},{% endif %}
+{%- endfor %}
+};

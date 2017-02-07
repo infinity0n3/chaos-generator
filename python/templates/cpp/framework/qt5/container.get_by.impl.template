@@ -1,0 +1,5 @@
+	{% set item = method.meta.property.name + "_item" %}{{ method.meta.property.contained.type | cpp_declare_var(item) }};
+	foreach({{ item }}, {{ method.meta.property | cpp_by_value(prefix="m_") }})
+	{
+		//
+	}

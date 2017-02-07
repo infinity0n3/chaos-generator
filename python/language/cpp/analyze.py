@@ -2,6 +2,8 @@ import re
 from copy import deepcopy
 from language.cpp.filter import cpp_disect_type, cpp_type_filter, \
 	cpp_class_filename, cpp_camel_name_filter, cpp_to_ref_filter
+	
+from language.filters import singularize_filter
 
 from tarjan import tarjan
 
@@ -118,7 +120,88 @@ def cpp_convert_types(model, typemap):
 	
 	return model
 
+def add_model_method(model, method, prepend=False):
+	if 'methods' not in model:
+		model['methods'] = [method]
+	else:
+		if prepend:
+			model['methods'].insert(0, method)
+		else:
+			model['methods'].append(method)
+			
+def add_method_tag(method, tag, prepend=False):
+	if 'tags' not in method:
+		method['tags'] = [tag]
+	else:
+		if prepend:
+			method['tags'].insert(0, tag)
+		else:
+			method['tags'].append(tag)
+
+def argument_signiture(argument):
+	result = '_'
+	
+	tags = argument['tags'] if 'tags' in argument else [];
+	
+	if 'const' in tags:
+		result += 'const_'
+		
+	result += argument['type']
+	
+	return result
+
+def method_signitures(method):
+	signitures = []
+	name = method['name']
+	
+	arguments = method['arguments'] if 'arguments' in method else []
+	
+	if not arguments:
+		signitures.append(name)
+	
+	signiture = name
+	for arg in arguments:
+		asig = argument_signiture(arg)
+
+		if 'default' in arg:
+			signitures.append(signiture)
+			signiture += asig
+			signitures.append(signiture)
+		else:
+			signiture += asig
+	
+	signitures.append(signiture)
+	
+	return signitures
+
+def tags_with_prefix(tags, tag_prefix):
+	result = []
+	for tag in tags:
+		if tag.startswith(tag_prefix):
+			result.append(tag)
+	return result
+
+def get_model_property(model_name, model_property, model_env):
+	
+	model = model_env[model_name]
+	
+	if 'properties' in model:
+		for propertie in model['properties']:
+			if propertie['name'] == model_property:
+				return propertie, model_name
+	
+	if 'parents' in model:
+		for parent in model['parents']:
+			print "+++parent", parent
+			prop, from_model = get_model_property(parent, model_property, model_env)
+			if prop:
+				return prop, from_model
+
+	return {}, None
+
 def preprocess_types(models, model_env, typemap):
+	
+	errors = []
 	
 	def add_if_not_exists(container, item):
 		for obj in container:
@@ -168,28 +251,37 @@ def preprocess_types(models, model_env, typemap):
 			model['interfaces'] = interfaces
 			model['parents'] = parents
 			model['tags'] = tags
-
-
-def add_model_method(model, method, prepend=False):
-	if 'methods' not in model:
-		model['methods'] = [method]
-	else:
-		if prepend:
-			model['methods'].insert(0, method)
-		else:
-			model['methods'].append(method)
 			
-def add_method_tag(method, tag, prepend=False):
-	if 'tags' not in method:
-		method['tags'] = [tag]
-	else:
-		if prepend:
-			method['tags'].insert(0, tag)
-		else:
-			method['tags'].append(tag)
+		for interface in model['interfaces'] if 'interfaces' in model else []:
+			
+			# Add interfaces to parents list as in c++ they are the same
+			if 'parents' not in model:
+				model['parents'] = []
+			
+			if interface not in model['parents']:
+				model['parents'].append(interface)
+				
+				# Add interface functions to child model
+				interface = model_env[interface]
+				for method in interface['methods'] if 'methods' in interface else []:
+					if 'tags' in method:
+						if 'abstract' in method['tags']:
+							method_impl = deepcopy(method)
+							idx = method_impl['tags'].index('abstract')
+							method_impl['tags'].append("virtual")
+							method_impl['tags'].pop(idx)
+							if 'methods' in model_env[name]:
+								model['methods'].append(method_impl)
+							else:
+								model['methods'] = [method_impl]
+
+	return errors
 
 def preporcess_constructors(model_env):
 	print "== processing constructors =="
+	
+	errors = []
+	
 	# Gather model type usage
 	for name in model_env:
 		model = model_env[name]
@@ -197,15 +289,56 @@ def preporcess_constructors(model_env):
 		is_abstract = False
 		default_contructor = True
 		default_destructor = True
+		
+		properties = {}
+		for prop in model['properties'] if 'properties' in model else []:
+			properties[ prop['name'] ] = prop
+		
+		tags = model['tags'] if 'tags' in model else [];
+		parametric_constructors = tags_with_prefix(tags, "constructor:")
+		
+		for constr in parametric_constructors:
+			params = constr.split(":")[1].split(',')
 			
+			args = []
+			for par in params:
+				prop, from_model = get_model_property(name, par, model_env)
+				if not prop:
+					errors.append({
+						"type": "critical",
+						"msg": "Model '{0}' does not have property '{1}' to make parametrized constructor with it".format(name, par)
+					})
+					return errors
+				# TODO: check if property is private, suggest to change it to protected
+				
+				arg = {
+					"name": par,
+					"type": cpp_to_ref_filter(prop['type']),
+					"tags": ["const"]
+				}
+				
+				if "default" in prop:
+					arg['default'] = prop['default']
+					
+				args.append(arg)
+			
+			constructor = {
+				'name' : name,
+				'tags' : ['constructor', 'parametric'],
+				'brief': "Parameterized constructor",
+				'arguments': args
+			}
+			add_model_method(model, constructor, prepend=True)
+			
+		signitures = []
+		
 		if 'methods' in model:
 			for method in model['methods']:
-				if method['name'] == name:
-					default_contructor = False
-					
 				if 'tags' in method:
 					if 'abstract' in method['tags']:
 						is_abstract = True
+						
+				signitures.extend( method_signitures(method) )
 		
 		# Add default desctructor
 		if default_destructor:
@@ -219,6 +352,9 @@ def preporcess_constructors(model_env):
 			
 			add_model_method(model, destructor, prepend=True)
 		
+		if name in signitures:
+			default_contructor = False
+				
 		# Add default constructor
 		if default_contructor:
 			constructor = {
@@ -227,9 +363,14 @@ def preporcess_constructors(model_env):
 				'brief': "Default constructor"
 			}
 			add_model_method(model, constructor, prepend=True)
+			
+	return errors
 
 def preprocess_encapsulation(model_env):
 	print "== processing encapsulation =="
+	
+	errors = []
+	
 	for name in model_env:
 		model = model_env[name]
 		for propertie in model['properties'] if 'properties' in model else []:
@@ -243,81 +384,78 @@ def preprocess_encapsulation(model_env):
 			if 'protected' in tags:
 				add_method_tag(model, 'has_protected')
 			
-			if "private" not in tags:
-				if "no_read" not in tags:
-					getter_name = cpp_camel_name_filter(p_name)
-					getter = {
-						'brief': "m_{0} set function".format(p_name),
-						'name' : getter_name,
-						'return': cpp_to_ref_filter(p_type),
-						'template': 'cpp/property_getter.impl.template',
-						'meta': {
-							'property': {'name': p_name}
-						},
-						'tags' : ['getter', 'return_const', 'const'],
-					}
-					add_model_method(model, getter)
-					propertie['getter'] = getter_name
-				
-				if "no_write" not in tags:
-					setter_name = "set"+cpp_camel_name_filter(p_name, True)
-					setter = {
-						'brief': "m_{0} get function".format(p_name),
-						'name' : setter_name,
-						'return': 'void',
-						'template': 'cpp/property_setter.impl.template',
-						'meta': {
-							'property': {'name': p_name}
-						},
-						'arguments': [{
-							'brief': "New m_{0} value".format(p_name),
-							'name': p_name,
-							'type': cpp_to_ref_filter(p_type),
-							'tags': ['const']
-						}],
-						'tags' : ['setter'],
-					}
-					add_model_method(model, setter)
-					propertie['setter'] = setter_name
-					
 			if "protected" not in tags and "public" not in tags:
 				if "private" not in tags:
 					tags.append("private")
+			
+			if "no_read" not in tags:
+				getter_name = cpp_camel_name_filter(p_name)
+				getter = {
+					'brief': "m_{0} set function".format(p_name),
+					'name' : getter_name,
+					'return': cpp_to_ref_filter(p_type),
+					'template': 'cpp/property_getter.impl.template',
+					'meta': {
+						'property': {'name': p_name}
+					},
+					'tags' : ['getter', 'return_const', 'const'],
+				}
+				add_model_method(model, getter)
+				propertie['getter'] = getter_name
+			
+			if "no_write" not in tags:
+				setter_name = "set"+cpp_camel_name_filter(p_name, True)
+				setter = {
+					'brief': "m_{0} get function".format(p_name),
+					'name' : setter_name,
+					'return': 'void',
+					'template': 'cpp/property_setter.impl.template',
+					'meta': {
+						'property': {'name': p_name}
+					},
+					'arguments': [{
+						'brief': "New m_{0} value".format(p_name),
+						'name': p_name,
+						'type': cpp_to_ref_filter(p_type),
+						'tags': ['const']
+					}],
+					'tags' : ['setter'],
+				}
+				add_model_method(model, setter)
+				propertie['setter'] = setter_name
 				
 			propertie['tags'] = tags
 
-def tags_contains_prefix(tags, tag_prefix):
-	for tag in tags:
-		if tag.startswith(tag_prefix):
-			return tag
-	return None
+	return errors
 	
 def preprocess_containers(model_env):
 	print "== processing containers =="
+	
+	errors = []
+	
 	for name in model_env:
 		model = model_env[name]
 		for propertie in model['properties'] if 'properties' in model else []:
 			if 'contained' in propertie:
-				
-				print propertie
-				
+				p_name = propertie['name']
 				p_name = propertie['name']
 				p_type = propertie['type']
 				p_container = propertie['contained']['container']
 				p_contained_type = propertie['contained']['type']
+				p_contained_type_pure = propertie['contained']['type'].replace('*','').replace('&','')
 				
 				tags = []
 				if 'tags' in propertie:
 					tags = propertie['tags']
 				
-				if 'container_add' in tags:
-					method_name = cpp_camel_name_filter('add_' + p_name + '_item')
+				if 'add_item' in tags:
+					method_name = cpp_camel_name_filter('add_' + singularize_filter(p_name))
 					print "Container[container_add]", method_name
 					method = {
 						'brief': "Add item to m_{0} conteinr".format(p_name),
 						'name' : method_name,
 						'return': 'void',
-						'template': 'cpp/container_add.impl.template',
+						'template': 'container.add.impl.template',
 						'arguments': [{
 							'brief': "New m_{0} value".format(p_name),
 							'name': 'item',
@@ -328,53 +466,151 @@ def preprocess_containers(model_env):
 					}
 					add_model_method(model, method)
 					
-				if tags_contains_prefix(tags, 'container_new:'):
-					contained_property = tags_contains_prefix(tags, 'container_new:').split(':')[1].split(',')
+				items = tags_with_prefix(tags, 'add_item:')
+				for items in items:
+					params = item.split(':')[1].split(',')
 					method_name = cpp_camel_name_filter('add_' + p_name + '_item')
-					print "Container[container_add_by]", method_name
 					
-				if 'container_remove' in tags:
-					method_name = cpp_camel_name_filter('remove_' + p_name)
-					print "Container[container_remove]", method_name
+					print "Container[add_item_from]", method_name
 					
-				if tags_contains_prefix(tags, 'container_remove_by:'):
-					contained_property = tags_contains_prefix(tags, 'container_contains_by:').split(':')[1].split(',')
-					method_name = cpp_camel_name_filter('remove_' + p_name)
-					print "Container[container_remove_by]", method_name
+				if 'remove_item' in tags:
+					method_name = cpp_camel_name_filter('remove_' + singularize_filter(p_name))
+					print "Container[remove_item]", method_name
 					
-				if 'container_contains' in tags:
+				items = tags_with_prefix(tags, 'remove_item_by:')
+				for items in items:
+					params = item.split(':')[1].split(',')
+					
+					method_suffix = cpp_camel_name_filter( "_and_".join(params), capitalize_first=True)
+					method_name = "remove{0}By{1}".format(singular, method_suffix)
+					
+					print "Container[remove_item_by]", method_name
+					
+				if 'contains' in tags:
 					method_name = cpp_camel_name_filter(p_name + '_contains')
-					print "Container[container_contains]", method_name
+					print "Container[contains]", method_name
 					
-				if tags_contains_prefix(tags, 'container_search_by:'):
-					contained_property = tags_contains_prefix(tags, 'container_contains_by:').split(':')[1].split(',')
-					method_name = cpp_camel_name_filter(p_name + '_search_by' )
-					print "Container[container_search_by {0}]".format(contained_property), method_name
-					
-				if tags_contains_prefix(tags, 'container_contains_by:'):
-					
-					contained_property = tags_contains_prefix(tags, 'container_contains_by:').split(':')[1]
-					method_name = cpp_camel_name_filter(p_name + '_contains_' + contained_property)
+				#~ if tags_with_prefix(tags, 'search_by:'):
+					#~ #contained_property = tags_with_prefix(tags, 'container_contains_by:').split(':')[1].split(',')
+					#~ method_name = cpp_camel_name_filter(p_name + '_search_by' )
+					#~ print "Container[search_by {0}]".format(contained_property), method_name
 				
-					print "Container[container_contains_by {0}]".format(contained_property), method_name
+				items = tags_with_prefix(tags, 'get_by:')
+				for item in items:
+					params = item.split(':')[1].split(',')
+					singular = cpp_camel_name_filter(singularize_filter(p_name), capitalize_first=True)
+					
+					method_suffix = cpp_camel_name_filter( "_and_".join(params), capitalize_first=True)
+					method_name = "get{0}By{1}".format(singular, method_suffix)
+					
+					args = []
+					c_type = p_contained_type.replace('*','').replace('&','')
+					for par in params:
+						prop, from_model = get_model_property(c_type, par, model_env)
+						if not prop:
+							errors.append({
+								"type": "critical",
+								"msg": "Model '{0}' does not have property '{1}' to make parametrized constructor with it".format(name, par)
+							})
+							return errors
+						# TODO: check if property is private, suggest to change it to protected
+							
+						print method_name, c_type, par, prop
+						arg = {
+							"name": "_" + par,
+							"type": cpp_to_ref_filter(prop['type']),
+							"tags": ["const"]
+						}
+						args.append(arg)
+					
+					container_method = {
+						"name": method_name,
+						"arguments": args,
+						"template": "container.get_by.impl.template",
+						"return": p_contained_type,
+						"tags": ["container_get_by", "const"],
+						'meta': {
+							'property': propertie
+						},
+					}
+					
+					add_model_method(model, container_method)
+					
+					#print method_name, args
+				
+				if tags_with_prefix(tags, 'contains_by:'):
+					pass
+					#~ contained_property = tags_with_prefix(tags, 'contains_by:').split(':')[1]
+					#~ method_name = cpp_camel_name_filter(p_name + '_contains_' + contained_property)
+				
+					#~ print "Container[container_contains_by {0}]".format(contained_property), method_name
 
-def planner(models, packages, typemap, builtin_types = {}, library_types = {}, custom_types = {}, cpp_ext='.cpp', hpp_ext='.h' ):
+	return errors
+
+def preporcess_enumerations(model_env):
+	errors = []
+	
+	for name in model_env:
+		model = model_env[name]
+		tags = model['tags'] if 'tags' in model else []
+		if 'is_enum' in tags:
+			is_flag = "flags" in tags
+			elements = model['elements']
+			
+			flag = 1
+			
+			elements_count = len(elements)
+			for i in xrange(elements_count):
+				element = elements[i]
+				tags = element['tags'] if 'tags' in element else []
+				if i == elements_count-1:
+					tags.append("last")
+					
+				if is_flag:
+					element['value'] = flag
+					flag = flag << 1
+	
+			if is_flag:
+				elements.insert(0, {"name": "NONE", "value": "0"})
+	
+	return errors
+
+def planner(models, enums, packages, typemap, builtin_types = {}, library_types = {}, custom_types = {}, cpp_ext='.cpp', hpp_ext='.h' ):
 	
 	model_uses = {}
 	model_inherits = {}
 	model_package = {}
 	model_env = {}
 	
+	for e in enums:
+		tags = e['tags'] if 'tags' in e else []
+		if 'is_enum' not in tags:
+			tags.append('is_enum')
+	
+	models.extend(enums)
+	
 	errors = []
 	
-	preprocess_types(models, model_env, typemap)
+	errors = preprocess_types(models, model_env, typemap)
+	if errors:
+		return [], errors
 	
-	preporcess_constructors(model_env)
+	errors = preporcess_enumerations(model_env)
+	if errors:
+		return [], errors
 	
-	preprocess_encapsulation(model_env)
-	
-	preprocess_containers(model_env)
-	
+	errors = preporcess_constructors(model_env)
+	if errors:
+		return [], errors
+		
+	errors = preprocess_encapsulation(model_env)
+	if errors:
+		return [], errors
+		
+	errors = preprocess_containers(model_env)
+	if errors:
+		return [], errors
+		
 	# Gather model type usage
 	for name in model_env:
 		model = model_env[name]
@@ -400,29 +636,26 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 		for interface in model['interfaces'] if 'interfaces' in model else []:
 			if interface not in model_types:
 				model_types.append( interface )
+				
 			if interface not in model_inherit:
 				model_inherit.append(interface)
-				
-			# Add interfaces to parents list as in c++ they are the same
-			if 'parents' not in model:
-				model['parents'] = []
-				
+			
 			if interface not in model['parents']:
 				model_env[name]['parents'].append(interface)
 				
-				# Add interface functions to child model
-				interface = model_env[interface]
-				for method in interface['methods'] if 'methods' in interface else []:
-					if 'tags' in method:
-						if 'abstract' in method['tags']:
-							method_impl = deepcopy(method)
-							idx = method_impl['tags'].index('abstract')
-							method_impl['tags'].append("virtual")
-							method_impl['tags'].pop(idx)
-							if 'methods' in model_env[name]:
-								model['methods'].append(method_impl)
-							else:
-								model['methods'] = [method_impl]
+				#~ # Add interface functions to child model
+				#~ interface = model_env[interface]
+				#~ for method in interface['methods'] if 'methods' in interface else []:
+					#~ if 'tags' in method:
+						#~ if 'abstract' in method['tags']:
+							#~ method_impl = deepcopy(method)
+							#~ idx = method_impl['tags'].index('abstract')
+							#~ method_impl['tags'].append("virtual")
+							#~ method_impl['tags'].pop(idx)
+							#~ if 'methods' in model_env[name]:
+								#~ model['methods'].append(method_impl)
+							#~ else:
+								#~ model['methods'] = [method_impl]
 					
 		for propertie in model['properties'] if 'properties' in model else []:
 			types = cpp_extract_types(propertie['type'])
@@ -514,6 +747,8 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 	for group in scc:
 		for m in group:
 			if m in model_uses:
+				tags = model_env[m]['tags'] if 'tags' in model_env[m] else []
+				
 				pkg1 = model_package[m]
 				inc = ['"'+pkg1+hpp_ext+'"']
 				inc_hpp = []
@@ -551,6 +786,14 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 				model_env[m]['forwards'] = fwd_hpp
 				
 				if pkg1 not in package_includes:
+					pkg_classes = []
+					pkg_enums = []
+					
+					if 'is_enum' in tags:
+						pkg_enum.append( model_env[m] )
+					else:
+						pkg_classes.append( model_env[m] )
+					
 					package_includes[pkg1] = {
 						"def": {
 							"includes":inc_hpp,
@@ -558,12 +801,17 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 						"impl":{
 							"includes":inc
 						},
-						"classes" : [ model_env[m] ],
+						"classes" : pkg_classes,
+						"enums" : pkg_enums
 					}
 				else:
 					package_includes[pkg1]['def']['includes'].extend(inc_hpp)
 					package_includes[pkg1]['impl']['includes'].extend(inc)
-					package_includes[pkg1]['classes'].append(model_env[m])
+					if 'is_enum' in tags:
+						package_includes[pkg1]['enums'].append(model_env[m])
+					else:
+						package_includes[pkg1]['classes'].append(model_env[m])
+					
 				
 	
 	## Create generator units
@@ -581,6 +829,7 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 			"filename" : pkg_name + hpp_ext,
 			"env" : {
 				"classes": pkg['classes'],
+				"enums": pkg['enums'],
 				"includes" : inc,
 				"package" : pkg_name
 			}
@@ -596,6 +845,7 @@ def planner(models, packages, typemap, builtin_types = {}, library_types = {}, c
 			"filename" : pkg_name + cpp_ext,
 			"env" : {
 				"classes": pkg['classes'],
+				"enums": pkg['enums'],
 				"includes" : inc,
 				"package" : pkg_name
 			}

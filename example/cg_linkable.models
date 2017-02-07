@@ -44,5 +44,18 @@
 			"tags": ["virtual"]
 		}]
 		
+	}],
+	"enums": [{
+		"name": "IOType",
+		"package": "linkable",
+		"elements": [{
+			"name": "IN"
+		}, {
+			"name": "OUT"
+		}, {
+			"name": "INOUT",
+			"tags": ["alias_or:IN,OUT"]
+		}],
+		"tags": ["flags"]
 	}]
 }

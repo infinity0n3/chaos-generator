@@ -13,7 +13,7 @@
 			"brief": "Style class list",
 			"name": "style_class",
 			"type": "vector<string>",
-			"tags": ["container_add", "container_remove", "container_contains"]
+			"tags": ["add_item", "remove_item", "contains_item"]
 		}, {
 			"brief": "Style pseudo class (active, hover...)",
 			"name": "style_pseudo_class",

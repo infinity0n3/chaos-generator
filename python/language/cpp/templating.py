@@ -5,7 +5,9 @@ from language.cpp.filter import cpp_blockcomment_filter, \
 	cpp_linecomment_filter, cpp_block_filter, cpp_type_filter, \
 	cpp_arguments_filter, cpp_section_filter, cpp_extract_sections, \
 	cpp_defprotect, cpp_list_filter, cpp_declare_var_filter, cpp_attr_filter, \
-	cpp_camel_name_filter
+	cpp_camel_name_filter, cpp_new_value_filter, cpp_by_value_filter, cpp_by_ptr_filter
+	
+from language.filters import pluralize_filter, singularize_filter
 
 from language.cpp.test import cpp_is_ptr_test, cpp_is_ref_test
 
@@ -19,6 +21,9 @@ def create_templating_environment(template_paths):
 	
 	templateEnv = jinja2.Environment( loader=templateLoader )
 
+	templateEnv.filters['pluralize'] = pluralize_filter
+	templateEnv.filters['singularize'] = singularize_filter
+
 	templateEnv.filters['cpp_blockcomment'] = cpp_blockcomment_filter
 	templateEnv.filters['cpp_linecomment'] = cpp_linecomment_filter
 	templateEnv.filters['cpp_block'] = cpp_block_filter
@@ -28,7 +33,10 @@ def create_templating_environment(template_paths):
 	templateEnv.filters['cpp_section'] = cpp_section_filter
 	templateEnv.filters['cpp_list'] = cpp_list_filter
 	templateEnv.filters['cpp_declare_var'] = cpp_declare_var_filter
+	templateEnv.filters['cpp_new_value'] = cpp_new_value_filter
 	templateEnv.filters['cpp_attr'] = cpp_attr_filter
+	templateEnv.filters['cpp_by_value'] = cpp_by_value_filter
+	templateEnv.filters['cpp_by_ptr'] = cpp_by_ptr_filter
 	templateEnv.filters['cpp_camel_name'] = cpp_camel_name_filter
 	
 	templateEnv.tests['cpp_is_ptr'] = cpp_is_ptr_test

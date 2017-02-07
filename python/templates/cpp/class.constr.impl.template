@@ -1,0 +1,24 @@
+{{class.name}}::{{ method.name }}({{method.arguments | cpp_arguments}})
+{
+{%- if method.template %}
+	{% filter cpp_section("user_code", method.name, class.name, "custom" in method.tags, indent="	") %}
+	{% include method.template %}
+	{%- endfilter %}{# cpp_section "user_code"... #}
+{%- else %}
+{% filter cpp_section("user_code", method.name, class.name, "custom" in method.tags, indent="	") %}
+	{%- if "parametric" in method.tags %}
+	{%- for argument in method.arguments %}
+	m_{{ argument.name }} = {{ argument.name }};
+	{%- endfor %}
+	{%- else %}
+	{%- for property in class.properties %}
+		{%- if "initialize" in property.tags %}
+	m_{{ property.name }} = {{ property.type | cpp_new_value }};
+		{%- endif %}
+	{%- endfor %}
+	{%- endif %}
+{% filter cpp_section("user_code_after", method.name, class.name, "custom" not in method.tags, indent="	") %}
+{%- endfilter %}{# cpp_section "user_code_after"... #}
+{%- endfilter %}{# cpp_section "user_code"... #}
+{%- endif %}{# method.template... #}
+}
